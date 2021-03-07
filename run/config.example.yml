@@ -1,0 +1,47 @@
+debug: true
+etcd:
+  hosts:
+    - '<your etcd url>'
+
+node:
+  api:
+    portRange:
+      - 9000
+      - 9010
+    host: '127.0.0.1'
+    labels: {}
+
+services:
+  http-gateway:
+    httpListener:
+      port: 8003
+      host: '127.0.0.1'
+    labels: {}
+  test:
+    tcpListener:
+      portRange:
+        - 9000
+        - 9010
+      host: '127.0.0.1'
+    labels: {}
+
+components:
+  account-redis:
+    host: <your redis host>
+    port: <your redis port>
+    db: <use which db>
+    prefix: 'test'
+  account-database:
+    database:
+      type: 'mysql'
+      host: <your mysql host>
+      port: <your mysql port>
+      username: <your mysql username>
+      password: <your mysql password>
+      database: <database name>
+  etcd:
+    etcd:
+      hosts:
+      - '<your etcd url>'
+    ttl: 60
+    prefix: 'test'
