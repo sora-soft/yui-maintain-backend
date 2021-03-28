@@ -6,6 +6,7 @@ import {HTTPListener, IHTTPListenerOptions} from '@sora-soft/http-support';
 import {GatewayHandler} from '../handler/GatewayHandler';
 import {ForwardRoute} from '../../lib/route/ForwardRoute';
 import {Com} from '../../lib/Com';
+import {AccountWorld} from '../account/AccountWorld';
 
 export interface IHttpGatewayOptions extends IServiceOptions {
   httpListener: IHTTPListenerOptions;
@@ -28,8 +29,14 @@ class HttpGatewayService extends Service {
     await Com.accountDB.start();
     await Com.etcd.start();
     await Pvd.test.startup();
+    await Pvd.restful.startup();
 
-    const route = new GatewayHandler(this);
+    await AccountWorld.startup();
+
+    const route = new GatewayHandler(this, {
+      [ServiceName.Test]: Pvd.test,
+      [ServiceName.Restful]: Pvd.restful,
+    });
     const koa = new Koa();
     const listener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.executor);
 
@@ -37,6 +44,9 @@ class HttpGatewayService extends Service {
   }
 
   protected async shutdown() {
+    await AccountWorld.shutdown();
+
+    await Pvd.restful.shutdown();
     await Pvd.test.shutdown();
     await Com.etcd.stop();
     await Com.accountDB.stop();

@@ -1,4 +1,6 @@
 export enum ServiceName {
   Test = 'test',
-  HttpGatewayService = 'http-gateway'
+  HttpGatewayService = 'http-gateway',
+  Auth = 'auth',
+  Restful = 'restful',
 }

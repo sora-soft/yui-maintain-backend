@@ -1,6 +1,6 @@
 import {Request, Route, RPCHeader} from '@sora-soft/framework';
+import {validate} from 'class-validator';
 import {Com} from '../../lib/Com';
-import {ForwardRoute} from '../../lib/route/ForwardRoute';
 import {Account} from '../database/Account';
 import {UserErrorCode} from '../ErrorCode';
 import {AccountLock} from '../account/AccountLock';
@@ -8,6 +8,10 @@ import {AccountType} from '../../lib/Enum';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {UserError} from '../UserError';
 import {AccountWorld} from '../account/AccountWorld';
+import {ForwardRoute} from '../../lib/route/ForwardRoute';
+import {UserGroupId} from '../account/AccountType';
+import {Application} from '../Application';
+import {Hash, Random} from '../../lib/Utility';
 
 export interface IRegisterReq {
   username: string;
@@ -41,11 +45,21 @@ class GatewayHandler extends ForwardRoute {
       }
 
       const newAccount = new Account();
+      newAccount.salt = Random.randomString(20);
       newAccount.username = body.username;
-      newAccount.password = body.password;
+      newAccount.password = Hash.md5(body.password + newAccount.salt);
       newAccount.email = body.email;
+      newAccount.gid = UserGroupId;
+
+      const errors = await validate(newAccount);
+      if (errors.length) {
+        throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
+      }
 
       const account = await Com.accountDB.manager.save(newAccount);
+
+      Application.appLog.info('gateway', { event: 'create-account', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
+
       return {
         id: account.id,
       };
@@ -62,14 +76,28 @@ class GatewayHandler extends ForwardRoute {
     if (!account)
       throw new UserError(UserErrorCode.ERR_USERNAME_NOT_FOUND, `ERR_USERNAME_NOT_FOUND`);
 
-    if (account.password !== body.password)
+    const password = Hash.md5(body.password + account.salt);
+
+    if (account.password !== password)
       throw new UserError(UserErrorCode.ERR_WRONG_PASSWORD, `ERR_WRONG_PASSWORD`);
 
     const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
 
     await AccountWorld.setAccountSession(session, {
-      accountId: account.id
+      accountId: account.id,
+      gid: account.gid,
     });
+
+    Application.appLog.info('gateway', { event: 'account-login', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
+
+    return {};
+  }
+
+  @Route.method
+  async logout(body: void, request: Request<void>) {
+    const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
+
+    await AccountWorld.deleteAccountSession(session);
 
     return {};
   }
