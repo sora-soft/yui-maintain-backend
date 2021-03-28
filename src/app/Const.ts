@@ -1,5 +1,5 @@
 export class AppConst {
-  static readonly appName = 'example'
+  static readonly appName = require('../../package.json').name;
 }
 
 export class TimeConst {

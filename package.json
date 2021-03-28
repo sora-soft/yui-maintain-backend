@@ -1,5 +1,5 @@
 {
-  "name": "@sora-soft/example-project",
+  "name": "example-project",
   "version": "1.0.0",
   "description": "sora system example",
   "bin": {
