@@ -14,8 +14,8 @@ export interface IHttpGatewayOptions extends IServiceOptions {
 
 class HttpGatewayService extends Service {
   static register() {
-    Node.registerService(ServiceName.HttpGatewayService, (options: IHttpGatewayOptions) => {
-      return new HttpGatewayService(ServiceName.HttpGatewayService, options);
+    Node.registerService(ServiceName.HttpGateway, (options: IHttpGatewayOptions) => {
+      return new HttpGatewayService(ServiceName.HttpGateway, options);
     });
   }
 

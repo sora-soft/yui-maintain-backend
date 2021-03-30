@@ -10,7 +10,7 @@ class Pvd {
   }
 
   static test = new Provider<TestHandler>(ServiceName.Test);
-  static httpGateway = new Provider<GatewayHandler>(ServiceName.HttpGatewayService);
+  static httpGateway = new Provider<GatewayHandler>(ServiceName.HttpGateway);
   static restful = new Provider<RestfulHandler>(ServiceName.Restful);
 }
 
