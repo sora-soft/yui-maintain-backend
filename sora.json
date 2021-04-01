@@ -1,0 +1,15 @@
+{
+  "root": "src",
+  "dist": "dist",
+  "serviceDir": "app/service",
+  "serviceNameEnum": "app/service/common/ServiceName#ServiceName",
+  "serviceRegister": "app/service/common/ServiceRegister#ServiceRegister.init",
+  "handlerDir": "app/handler",
+  "workerDir": "app/worker",
+  "workerNameEnum": "app/worker/common/WorkerName#WorkerName",
+  "workerRegister": "app/worker/common/WorkerRegister#WorkerRegister.init",
+  "databaseDir": "app/database",
+  "componentNameEnum": "lib/Com#ComponentName",
+  "comClass": "lib/Com#Com",
+  "migration": "app/database/migration"
+}

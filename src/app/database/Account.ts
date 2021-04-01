@@ -6,7 +6,8 @@ import {BaseModel} from './base/Base';
 @Entity({
   name: 'user_pass_account'
 })
-@Index(['username', 'email'], { unique: true })
+@Index('username_email_idx', ['username', 'email'], { unique: true })
+@Index('email_idx', ['email'], { unique: true })
 export class Account extends BaseModel {
   @PrimaryGeneratedColumn('uuid')
   id: AccountId;
@@ -14,14 +15,12 @@ export class Account extends BaseModel {
   @Column({
     length: 64
   })
-  @Index({ unique: true })
   username: string;
 
   @Column({
     length: 128
   })
-  @Index({ unique: true })
-  @IsEmail()
+  // @IsEmail()
   email: string;
 
   @Column({
@@ -36,4 +35,7 @@ export class Account extends BaseModel {
 
   @Column()
   gid: AuthGroupId;
+
+  @Column()
+  test: string;
 }
