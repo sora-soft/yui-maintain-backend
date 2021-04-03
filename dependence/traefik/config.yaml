@@ -1,0 +1,14 @@
+entrypoints:
+  web:
+    address: ":80"
+
+providers:
+  providersThrottleDuration: 1s
+  etcd:
+    endpoints: ["192.168.20.5:2379"]
+    rootKey: "traefik"
+  file:
+    directory: "/etc/traefik/dynamic"
+
+api:
+  insecure: true

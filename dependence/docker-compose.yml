@@ -5,7 +5,9 @@ services:
     image: 'bitnami/etcd:latest'
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
-      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCDCTL_API=3
     ports:
       - 2379:2379
       - 2380:2380
@@ -24,3 +26,14 @@ services:
       - 3306:3306
     environment:
       MYSQL_ROOT_PASSWORD: root
+  traefik:
+    container_name: traefik
+    image: traefik
+    command:
+      - "--configFile=/etc/traefik/config.yaml"
+    volumes:
+      - "./traefik:/etc/traefik"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
