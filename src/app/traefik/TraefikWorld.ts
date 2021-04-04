@@ -29,7 +29,7 @@ class TraefikWorld {
           break;
         }
       }
-    })
+    });
   }
 }
 

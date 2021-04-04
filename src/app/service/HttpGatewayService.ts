@@ -9,9 +9,11 @@ import {Com} from '../../lib/Com';
 import {AccountWorld} from '../account/AccountWorld';
 import {Application} from '../Application';
 import {TraefikWorld} from '../traefik/TraefikWorld';
+import {RestfulHandler} from '../handler/RestfulHandler';
 
 export interface IHttpGatewayOptions extends IServiceOptions {
   httpListener: IHTTPListenerOptions;
+  skipAuthCheck?: boolean;
   traefik?: {
     prefix: string;
   }
@@ -40,10 +42,13 @@ class HttpGatewayService extends Service {
 
     const route = new GatewayHandler(this, {
       [ServiceName.Test]: Pvd.test,
-      [ServiceName.Restful]: Pvd.restful,
-    });
+      [ServiceName.Restful]: {
+        provider: Pvd.restful,
+        authChecker: RestfulHandler.authChecker,
+      },
+    }, this.gatewayOptions_.skipAuthCheck);
     const koa = new Koa();
-    const listener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.executor);
+    const listener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.executor, this.gatewayOptions_.httpListener.labels);
 
     if (this.gatewayOptions_.traefik) {
       const nameInTraefik = `${Application.appName.replace('@', '-')}:${this.name}`;

@@ -6,6 +6,7 @@ import {UserError} from '../UserError';
 import {validate} from 'class-validator';
 import {AccountWorld} from '../account/AccountWorld';
 import {ForwardRPCHeader} from '../../lib/Const';
+import {AuthGroupId} from '../account/AccountType';
 
 export interface IRestfulHandlerCom {
   name: string;
@@ -53,18 +54,17 @@ export interface IReqDeleteBatch {
 
 @ValidateClass()
 class RestfulHandler extends Route {
-  static auth(name: string) {
-    return (target: RestfulHandler, propertyKey: string, descriptor: PropertyDescriptor) => {
-      const origin = descriptor.value;
-      descriptor.value = async function (body: {db: string}, request: Request<{db: string}>, response: Response) {
-        if (request.getHeader(ForwardRPCHeader.RPC_NEED_AUTH_CHECK)) {
-          const authCheck = await AccountWorld.hasAuth(request.getHeader(ForwardRPCHeader.RPC_AUTH_GID), `${this.getAuthName(name, body.db)}`);
-          if (!authCheck)
-            throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${this.getAuthName(name, body.db)}`);
-        }
-        return origin.bind(this)(body, request, response);
-      }
-    };
+  static async authChecker(gid: AuthGroupId, service: string, method: string, request: Request<{db: string}>) {
+    const methodConvertMap = {
+      fetch: 'fetch',
+      insert: 'insert',
+      insertBatch: 'insert',
+      update: 'update',
+      updateBatch: 'update',
+      deleteBatch: 'delete',
+    }
+    const db = request.payload.db;
+    return AccountWorld.hasAuth(gid, [service, methodConvertMap[method], db].join('.'));
   }
 
   constructor(service: Service, list: RestfulHandlerComList) {
@@ -76,7 +76,6 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  @RestfulHandler.auth('fetch')
   async fetch(@AssertType() body: IReqFetch, request: Request<IReqFetch>) {
     const {com, entity} = this.getPair(body.db);
     const [list, total] = await com.manager.findAndCount(entity, {
@@ -91,7 +90,6 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  @RestfulHandler.auth('insert')
   async insert(@AssertType() body: IReqInsert, request: Request<IReqInsert>) {
     const {com, entity} = this.getPair(body.db);
 
@@ -103,7 +101,6 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  @RestfulHandler.auth('insert')
   async insertBatch(@AssertType() body: IReqInsertBatch, request: Request<IReqInsertBatch>) {
     const {com, entity} = this.getPair(body.db);
 
@@ -119,7 +116,6 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  @RestfulHandler.auth('update')
   async update(@AssertType() body: IReqUpdate, request: Request<IReqUpdate>) {
     const {com, entity} = this.getPair(body.db);
 
@@ -131,7 +127,6 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  @RestfulHandler.auth('update')
   async updateBatch(@AssertType() body: IReqUpdateBatch, request: Request<IReqUpdateBatch>) {
     const {com, entity} = this.getPair(body.db);
 
@@ -146,16 +141,11 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  @RestfulHandler.auth('delete')
   async deleteBatch(@AssertType() body: IReqDeleteBatch, request: Request<IReqUpdateBatch>) {
     const {com, entity} = this.getPair(body.db);
     await com.manager.delete(entity, body.list);
 
     return {};
-  }
-
-  private getAuthName(method: string, db: string) {
-    return [this.service.name, method, db].join('.');
   }
 
   private getPair(name: string) {
