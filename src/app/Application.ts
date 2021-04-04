@@ -1,4 +1,4 @@
-import {ETCDDiscovery, IETCDDiscoveryOptions} from '@sora-soft/etcd-discovery';
+import {ETCDDiscovery} from '@sora-soft/etcd-discovery';
 import {ConsoleOutput, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, LogLevel, Node, Runtime} from '@sora-soft/framework';
 import {AppConst} from './Const';
 import {AppLogger} from './AppLogger';
@@ -8,6 +8,9 @@ import {assertType} from 'typescript-is';
 import {AppError} from './AppError';
 import {AppErrorCode} from './ErrorCode';
 import {WorkerRegister} from './worker/common/WorkerRegister';
+
+// tslint:disable-next-line
+const pkg = require('../../package.json');
 
 export interface IApplicationOptions {
   debug: boolean;
@@ -27,6 +30,10 @@ export interface IApplicationOptions {
 }
 
 class Application {
+  static get appName(): string {
+    return pkg.name;
+  }
+
   static get appLog() {
     return this.appLog_;
   }

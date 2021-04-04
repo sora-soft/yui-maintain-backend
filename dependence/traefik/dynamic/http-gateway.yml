@@ -1,0 +1,5 @@
+http:
+  routers:
+    example-project:http-api:
+      rule: 'PathPrefix(`/api`)'
+      service: 'example-project:http-gateway@etcd'
