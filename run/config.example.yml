@@ -8,21 +8,23 @@ node:
       - 9000
       - 9010
     host: '<host>'
-  labels: {}
 
 services:
   http-gateway:
     httpListener:
-      port: 8003
+      portRange:
+        - 9000
+        - 9010
       host: '<host>'
-    labels: {}
+    traefik:
+      prefix: traefik
+
   restful:
     tcpListener:
       portRange:
         - 9000
         - 9010
       host: '<host>'
-    labels: {}
 
 components:
   account-redis:

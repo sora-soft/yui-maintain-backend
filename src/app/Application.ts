@@ -144,10 +144,11 @@ class Application {
     });
     const node = new Node(options.node);
     await Runtime.startup(node, discovery);
+    this.appLog_.success('application', { event: 'app-start', versions: { runtime: Runtime.version }, processId: process.pid });
+
     ServiceRegister.init();
     WorkerRegister.init();
-
-    await Pvd.registerSenders();
+    Pvd.registerSenders();
   }
 }
 

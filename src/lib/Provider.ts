@@ -5,7 +5,7 @@ import {TestHandler} from '../app/handler/TestHandler';
 import {ServiceName} from '../app/service/common/ServiceName';
 
 class Pvd {
-  static async registerSenders() {
+  static registerSenders() {
     TCPSender.register();
   }
 

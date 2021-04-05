@@ -28,12 +28,12 @@
   },
   "homepage": "https://github.com/sora-soft/example-project#readme",
   "dependencies": {
-    "@sora-soft/database-component": "^1.0.3",
-    "@sora-soft/etcd-component": "^1.0.2",
-    "@sora-soft/etcd-discovery": "^1.0.6",
-    "@sora-soft/framework": "^1.0.11",
-    "@sora-soft/http-support": "^1.0.5",
-    "@sora-soft/redis-component": "^1.0.5",
+    "@sora-soft/database-component": "^1.0.4",
+    "@sora-soft/etcd-component": "^1.0.3",
+    "@sora-soft/etcd-discovery": "^1.0.8",
+    "@sora-soft/framework": "^1.0.13",
+    "@sora-soft/http-support": "^1.0.6",
+    "@sora-soft/redis-component": "^1.0.6",
     "axios": "^0.21.1",
     "camelcase": "^6.2.0",
     "class-validator": "^0.13.1",
@@ -44,7 +44,7 @@
     "mysql2": "^2.2.5",
     "reflect-metadata": "^0.1.13",
     "source-map-support": "^0.5.19",
-    "typeorm": "^0.2.31",
+    "typeorm": "^0.2.32",
     "typescript-is": "^0.18.2"
   },
   "devDependencies": {
