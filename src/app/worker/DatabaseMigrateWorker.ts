@@ -1,4 +1,4 @@
-import {DatabaseComponent, IDatabaseComponentOptions, Migration, MigrationExecutor} from '@sora-soft/database-component';
+import {DatabaseComponent, IDatabaseComponentOptions} from '@sora-soft/database-component';
 import {IWorkerOptions, Node, Runtime, Worker} from '@sora-soft/framework';
 import {createConnection} from 'typeorm';
 import {MysqlDriver} from 'typeorm/driver/mysql/MysqlDriver';

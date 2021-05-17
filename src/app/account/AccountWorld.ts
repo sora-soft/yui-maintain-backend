@@ -1,8 +1,14 @@
+import {Hash, Random} from '../../lib/Utility';
 import {Com} from '../../lib/Com';
 import {TimeConst} from '../Const';
+import {Account} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
+import {UserErrorCode} from '../ErrorCode';
 import {RedisKey} from '../Keys';
+import {UserError} from '../UserError';
 import {AuthGroupId, DefaultGroupList, DefaultPermissionList, IAccountSessionData, PermissionResult} from './AccountType';
+import {validate} from 'class-validator';
+import {Application} from '../Application';
 
 class AccountWorld {
   static async startup() {
@@ -61,6 +67,41 @@ class AccountWorld {
       return false;
 
     return permission.every((p) => { return p.permission === PermissionResult.ALLOW });
+  }
+
+  static async createAccount(account: Partial<Account>) {
+    const exited = await Com.accountDB.manager.findOne(Account, {
+        where: [{
+          email: account.email,
+        }, {
+          username: account.username,
+        }]
+      });
+      if (exited) {
+        if (exited.username === account.username)
+          throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, `ERR_DUPLICATE_USERNAME`);
+
+        if (exited.email === account.email)
+          throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, `ERR_DUPLICATE_EMAIL`);
+      }
+
+      const newAccount = new Account();
+      newAccount.salt = Random.randomString(20);
+      newAccount.username = account.username;
+      newAccount.password = Hash.md5(account.password + newAccount.salt);
+      newAccount.email = account.email;
+      newAccount.gid = account.gid;
+
+      const errors = await validate(newAccount);
+      if (errors.length) {
+        throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
+      }
+
+      const createdAccount = await Com.accountDB.manager.save(newAccount);
+
+      Application.appLog.info('gateway', { event: 'create-account', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
+
+      return createdAccount;
   }
 }
 

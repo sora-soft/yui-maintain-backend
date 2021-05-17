@@ -1,17 +1,19 @@
 import {Provider, TCPSender} from '@sora-soft/framework';
+import {WebSocketSender} from '@sora-soft/http-support';
+import {AuthHandler} from '../app/handler/AuthHandler';
 import {GatewayHandler} from '../app/handler/GatewayHandler';
 import {RestfulHandler} from '../app/handler/RestfulHandler';
-import {TestHandler} from '../app/handler/TestHandler';
 import {ServiceName} from '../app/service/common/ServiceName';
 
 class Pvd {
   static registerSenders() {
     TCPSender.register();
+    WebSocketSender.register();
   }
 
-  static test = new Provider<TestHandler>(ServiceName.Test);
   static httpGateway = new Provider<GatewayHandler>(ServiceName.HttpGateway);
   static restful = new Provider<RestfulHandler>(ServiceName.Restful);
+  static auth = new Provider<AuthHandler>(ServiceName.Auth);
 }
 
 export {Pvd}

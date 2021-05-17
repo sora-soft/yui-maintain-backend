@@ -32,20 +32,17 @@ class HttpGatewayService extends Service {
   }
 
   protected async startup() {
-    await Com.accountRedis.start();
-    await Com.accountDB.start();
-    await Com.etcd.start();
-    await Pvd.test.startup();
-    await Pvd.restful.startup();
+    await this.connectComponents([Com.accountRedis, Com.accountDB, Com.etcd]);
+    await this.registerProviders([Pvd.restful, Pvd.auth]);
 
     await AccountWorld.startup();
 
     const route = new GatewayHandler(this, {
-      [ServiceName.Test]: Pvd.test,
       [ServiceName.Restful]: {
         provider: Pvd.restful,
         authChecker: RestfulHandler.authChecker,
       },
+      [ServiceName.Auth]: Pvd.auth,
     }, this.gatewayOptions_.skipAuthCheck);
     const koa = new Koa();
     const listener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.executor, this.gatewayOptions_.httpListener.labels);
@@ -60,12 +57,6 @@ class HttpGatewayService extends Service {
 
   protected async shutdown() {
     await AccountWorld.shutdown();
-
-    await Pvd.restful.shutdown();
-    await Pvd.test.shutdown();
-    await Com.etcd.stop();
-    await Com.accountDB.stop();
-    await Com.accountRedis.stop();
   }
 
   private gatewayOptions_: IHttpGatewayOptions;

@@ -12,6 +12,7 @@ import {ForwardRoute} from '../../lib/route/ForwardRoute';
 import {UserGroupId} from '../account/AccountType';
 import {Application} from '../Application';
 import {Hash, Random} from '../../lib/Utility';
+import {AuthPermission} from '../database/Auth';
 
 export interface IRegisterReq {
   username: string;
@@ -29,36 +30,10 @@ class GatewayHandler extends ForwardRoute {
   @Route.method
   async register(@AssertType() body: IRegisterReq) {
     return AccountLock.registerLock(AccountType.Admin, body.username, body.email, async () => {
-      const exited = await Com.accountDB.manager.findOne(Account, {
-        where: [{
-          email: body.email,
-        }, {
-          username: body.username,
-        }]
+      const account = await AccountWorld.createAccount({
+        ...body,
+        gid: UserGroupId,
       });
-      if (exited) {
-        if (exited.username === body.username)
-          throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, `ERR_DUPLICATE_USERNAME`);
-
-        if (exited.email === body.email)
-          throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, `ERR_DUPLICATE_EMAIL`);
-      }
-
-      const newAccount = new Account();
-      newAccount.salt = Random.randomString(20);
-      newAccount.username = body.username;
-      newAccount.password = Hash.md5(body.password + newAccount.salt);
-      newAccount.email = body.email;
-      newAccount.gid = UserGroupId;
-
-      const errors = await validate(newAccount);
-      if (errors.length) {
-        throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
-      }
-
-      const account = await Com.accountDB.manager.save(newAccount);
-
-      Application.appLog.info('gateway', { event: 'create-account', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
 
       return {
         id: account.id,
@@ -88,9 +63,47 @@ class GatewayHandler extends ForwardRoute {
       gid: account.gid,
     });
 
+    const permissions = await Com.accountDB.manager.find(AuthPermission, {
+      select: ['name', 'permission'],
+      where: {
+        gid: account.gid,
+      }
+    });
+
     Application.appLog.info('gateway', { event: 'account-login', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
 
-    return {};
+    return {
+      account: {
+        username: account.username,
+        email: account.email,
+      },
+      permissions
+    };
+  }
+
+  @Route.method
+  async info(body: void, request: Request<void>) {
+    const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
+
+    const cache = await AccountWorld.getAccountSession(session);
+    if (!cache)
+      throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
+
+    const account = await Com.accountDB.manager.findOne(Account, cache.accountId);
+    const permissions = await Com.accountDB.manager.find(AuthPermission, {
+      select: ['name', 'permission'],
+      where: {
+        gid: cache.gid,
+      }
+    });
+
+    return {
+      account: {
+        username: account.username,
+        email: account.email,
+      },
+      permissions
+    };
   }
 
   @Route.method

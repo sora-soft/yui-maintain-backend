@@ -1,50 +1,56 @@
-import {DatabaseComponent, EntityTarget} from '@sora-soft/database-component';
-import {Route, Service, Request, Response} from '@sora-soft/framework';
+import {DatabaseComponent, EntityTarget, WhereBuilder, WhereCondition} from '@sora-soft/database-component';
+import {Route, Service, Request} from '@sora-soft/framework';
 import {ValidateClass, AssertType} from 'typescript-is';
-import {UserErrorCode} from '../ErrorCode';
+import {AppErrorCode, UserErrorCode} from '../ErrorCode';
 import {UserError} from '../UserError';
 import {validate} from 'class-validator';
 import {AccountWorld} from '../account/AccountWorld';
-import {ForwardRPCHeader} from '../../lib/Const';
 import {AuthGroupId} from '../account/AccountType';
+import {AppError} from '../AppError';
 
-export interface IRestfulHandlerCom {
+export interface IRestfulHandlerCom<T = unknown> {
   name: string;
-  com: DatabaseComponent,
-  entity: any;
+  com: DatabaseComponent;
+  entity: EntityTarget<T>;
+  select?: string[];
 }
 
 export type RestfulHandlerComList = IRestfulHandlerCom[];
 
-export interface IReqFetch {
+export interface IReqFetch<T> {
   db: string;
   offset: number;
   limit: number;
-  where?: any;
+  relations?: string[];
+  order?: {
+    [k: string]: -1 | 1;
+  };
+  select?: string[];
+  where?: WhereCondition<T>;
 }
 
-export interface IReqUpdate {
-  data: any;
+export interface IReqUpdate<T> {
+  data: Partial<T>;
   id: any;
   db: string;
 }
 
-export interface IReqUpdateBatch {
+export interface IReqUpdateBatch<T> {
   db: string;
   list: {
     id: any;
-    data: any;
+    data: Partial<T>;
   }[];
 }
 
-export interface IReqInsert {
+export interface IReqInsert<T> {
   db: string;
-  data: any;
+  data: Partial<T>;
 }
 
-export interface IReqInsertBatch {
+export interface IReqInsertBatch<T> {
   db: string;
-  list: any[];
+  list: Partial<T>[];
 }
 
 export interface IReqDeleteBatch {
@@ -76,47 +82,64 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async fetch(@AssertType() body: IReqFetch, request: Request<IReqFetch>) {
-    const {com, entity} = this.getPair(body.db);
+  async fetch<T>(@AssertType() body: IReqFetch<T>) {
+    const {com, entity, select} = this.getPair<T>(body.db);
+
+    const finalSelect = select ? select : [];
+    if (body.select && select) {
+      body.select.forEach((key) => {
+        if (select.includes(key))
+          finalSelect.push(key);
+      });
+    }
+
+    const where = WhereBuilder.build(body.where);
     const [list, total] = await com.manager.findAndCount(entity, {
+      skip: body.offset,
       take: body.limit,
-      from: body.offset,
-      where: body.where,
+      relations: body.relations,
+      order: body.order as any,
+      select: finalSelect.length ? finalSelect as (keyof T)[] : undefined,
+      where,
     });
     return {
       list,
       total,
-    }
+    } as { list: Array<T>, total: number }
   }
 
   @Route.method
-  async insert(@AssertType() body: IReqInsert, request: Request<IReqInsert>) {
-    const {com, entity} = this.getPair(body.db);
+  async insert<T>(@AssertType() body: IReqInsert<T>) {
+    const {com, entity} = this.getPair<T>(body.db);
 
-    const data = await this.installData(entity, body.data);
+    const data = await this.installData<T>(entity, body.data);
 
-    const result = await com.manager.save(data);
+    const result = await com.manager.insert(entity, data).catch(err => {
+      throw new AppError(AppErrorCode.ERR_DATABASE, err.message);
+    });
 
-    return result;
+    return result.raw as T;
   }
 
   @Route.method
-  async insertBatch(@AssertType() body: IReqInsertBatch, request: Request<IReqInsertBatch>) {
-    const {com, entity} = this.getPair(body.db);
+  async insertBatch<T>(@AssertType() body: IReqInsertBatch<T>) {
+    const {com, entity} = this.getPair<T>(body.db);
 
-    const list = [];
+    const list: T[] = [];
     for (const d of body.list) {
-      const data = await this.installData(entity, d);
+      const data = await this.installData<T>(entity, d);
       list.push(data);
     }
 
-    const result = await com.manager.save(list);
+    const result = await com.manager.save(list).catch(err => {
+      throw new AppError(AppErrorCode.ERR_DATABASE, err.message);
+    });
 
     return result;
   }
 
   @Route.method
-  async update(@AssertType() body: IReqUpdate, request: Request<IReqUpdate>) {
+  async update<T>(@AssertType() body: IReqUpdate<T>) {
     const {com, entity} = this.getPair(body.db);
 
     const data = await this.installData(entity, body.data);
@@ -127,7 +150,7 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async updateBatch(@AssertType() body: IReqUpdateBatch, request: Request<IReqUpdateBatch>) {
+  async updateBatch<T>(@AssertType() body: IReqUpdateBatch<T>) {
     const {com, entity} = this.getPair(body.db);
 
     await com.manager.transaction(async (manager) => {
@@ -141,21 +164,21 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async deleteBatch(@AssertType() body: IReqDeleteBatch, request: Request<IReqUpdateBatch>) {
-    const {com, entity} = this.getPair(body.db);
+  async deleteBatch<T>(@AssertType() body: IReqDeleteBatch) {
+    const {com, entity} = this.getPair<T>(body.db);
     await com.manager.delete(entity, body.list);
 
     return {};
   }
 
-  private getPair(name: string) {
+  private getPair<T>(name: string) {
     const pair = this.dbMap_.get(name);
     if (!pair)
       throw new UserError(UserErrorCode.ERR_DB_NOT_FOUND, `ERR_DB_NOT_FOUND, db=${name}`);
-    return pair;
+    return pair as IRestfulHandlerCom<T>;
   }
 
-  private async installData(entity: any, data: any) {
+  private async installData<T>(entity: any, data: any) {
     const result = new entity();
     for (const [key, value] of Object.entries(data)) {
       result[key] = value;
@@ -166,7 +189,7 @@ class RestfulHandler extends Route {
       throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
     }
 
-    return result;
+    return result as T;
   }
 
   private dbMap_: Map<string, IRestfulHandlerCom>;

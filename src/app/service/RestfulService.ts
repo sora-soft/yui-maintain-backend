@@ -22,13 +22,14 @@ class RestfulService extends Service {
   }
 
   protected async startup() {
-    await Com.accountDB.start();
+    await this.connectComponent(Com.accountDB);
 
     const route = new RestfulHandler(this, [
       {
         name: 'account',
         com: Com.accountDB,
         entity: Account,
+        select: ['id', 'username', 'email', 'gid', 'createAt', 'updateAt'],
       },
       {
         name: 'auth-group',
@@ -47,7 +48,6 @@ class RestfulService extends Service {
   }
 
   protected async shutdown() {
-    await Com.accountDB.stop();
   }
 
   private serviceConfig_: IRestOptions;

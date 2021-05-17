@@ -31,14 +31,15 @@ class ConfigLoader<T extends {}> {
   }
 
   async load(targetUrl: string) {
-    const target = new url.URL(targetUrl);
-    switch (target.protocol) {
-      case 'http:':
-      case 'https:':
+    const protocol = targetUrl.split(':')[0];
+    switch (protocol) {
+      case 'http':
+      case 'https':
         this.config_ = await this.readURL(targetUrl);
         break;
-      case 'file:':
+      case 'file':
       default:
+        const target = url.pathToFileURL(targetUrl);
         const extname = path.extname(targetUrl);
         const filePath = path.resolve(process.cwd(), target.pathname);
         switch (extname) {

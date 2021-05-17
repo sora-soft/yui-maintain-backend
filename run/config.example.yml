@@ -26,6 +26,13 @@ services:
         - 9010
       host: '<host>'
 
+  auth:
+    tcpListener:
+      portRange:
+        - 9030
+        - 9040
+      host: '<host>'
+
 components:
   account-redis:
     host: <host>

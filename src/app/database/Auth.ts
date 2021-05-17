@@ -1,4 +1,4 @@
-import {Column, CreateDateColumn, Entity, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component';
+import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from 'typeorm';
 import {AuthGroupId, PermissionResult} from '../account/AccountType';
 import {BaseModel} from './base/Base';
 
@@ -11,6 +11,10 @@ export class AuthGroup extends BaseModel {
     length: 64
   })
   name: string;
+
+  @OneToMany(() => AuthPermission, permission => permission.group)
+  @JoinColumn({name: 'id'})
+  permissions: AuthPermission[];
 }
 
 @Entity()
@@ -29,4 +33,8 @@ export class AuthPermission extends BaseModel {
     default: PermissionResult.DENY,
   })
   permission: PermissionResult;
+
+  @ManyToOne(() => AuthGroup, group => group.permissions)
+  @JoinColumn({name: 'gid'})
+  group: AuthGroup;
 }

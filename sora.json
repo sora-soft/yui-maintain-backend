@@ -11,5 +11,7 @@
   "databaseDir": "app/database",
   "componentNameEnum": "lib/Com#ComponentName",
   "comClass": "lib/Com#Com",
-  "migration": "app/database/migration"
+  "migration": "app/database/migration",
+  "apiDeclarationOutput": "../dist-api-declaration/api.ts",
+  "userErrorCodeEnum": "app/ErrorCode#UserErrorCode"
 }

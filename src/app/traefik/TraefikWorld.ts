@@ -13,8 +13,6 @@ class TraefikWorld {
           let serverUrl = '';
           switch (protocol) {
             case 'http':
-              serverUrl = `http://${listener.info.endpoint}`;
-              break;
             case 'tcp':
               serverUrl = listener.info.endpoint;
               break;

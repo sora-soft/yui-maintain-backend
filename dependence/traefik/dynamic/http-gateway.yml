@@ -3,3 +3,14 @@ http:
     example-project:http-api:
       rule: 'PathPrefix(`/api`)'
       service: 'example-project:http-gateway@etcd'
+      middlewares:
+        - cors-header
+  middlewares:
+    cors-header:
+      headers:
+        customResponseHeaders:
+          access-control-allow-credentials: true
+          access-control-allow-origin: 'http://localhost:4200'
+          access-control-allow-methods: 'GET, POST, OPTIONS'
+          access-control-allow-headers: 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range'
+          access-control-max-age: 600

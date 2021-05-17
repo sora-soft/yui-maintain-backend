@@ -1,7 +1,8 @@
-import {Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn} from '@sora-soft/database-component';
+import {Column, Entity, Index, JoinColumn, OneToOne, PrimaryGeneratedColumn} from 'typeorm';
 import {IsEmail} from 'class-validator';
 import {AccountId, AuthGroupId} from '../account/AccountType';
 import {BaseModel} from './base/Base';
+import {AuthGroup} from './Auth';
 
 @Entity({
   name: 'user_pass_account'
@@ -20,7 +21,7 @@ export class Account extends BaseModel {
   @Column({
     length: 128
   })
-  // @IsEmail()
+  @IsEmail()
   email: string;
 
   @Column({
@@ -33,9 +34,10 @@ export class Account extends BaseModel {
   })
   salt: string;
 
-  @Column()
-  gid: AuthGroupId;
+  @OneToOne(() => AuthGroup)
+  @JoinColumn({name: 'gid'})
+  group: AuthGroup;
 
   @Column()
-  test: string;
+  gid: AuthGroupId;
 }
