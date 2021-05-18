@@ -3,6 +3,7 @@ services:
   etcd:
     container_name: etcd
     image: 'bitnami/etcd:latest'
+    restart: always
     environment:
       - ALLOW_NONE_AUTHENTICATION=yes
       - ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379
@@ -15,6 +16,7 @@ services:
     container_name: redis
     image: "redis:alpine"
     command: redis-server
+    restart: always
     ports:
      - "6379:6379"
   mysql:
@@ -29,11 +31,12 @@ services:
   traefik:
     container_name: traefik
     image: traefik
+    restart: always
     command:
       - "--configFile=/etc/traefik/config.yaml"
     volumes:
       - "./traefik:/etc/traefik"
-# windows 不支持 host 模式，所以在 windows 上可能无法获取到正确的客户端IP
+    # windows 不支持 host 模式，所以在 windows 上可能无法获取到正确的客户端IP
     ports:
       - target: 80
         published: 80

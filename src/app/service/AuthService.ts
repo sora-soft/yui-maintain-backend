@@ -2,6 +2,7 @@ import {TCPListener} from '@sora-soft/framework';
 import {ITCPListenerOptions} from '@sora-soft/framework';
 import {Route} from '@sora-soft/framework';
 import {IServiceOptions, Node, Service} from '@sora-soft/framework';
+import {AssertType} from 'typescript-is';
 import {Com} from '../../lib/Com';
 import {AuthHandler} from '../handler/AuthHandler';
 import {ServiceName} from './common/ServiceName';
@@ -17,7 +18,7 @@ class AuthService extends Service {
     });
   }
 
-  constructor(name: string, options: IAuthOptions) {
+  constructor(name: string, @AssertType() options: IAuthOptions) {
     super(name, options);
     this.serviceOptions_ = options;
   }

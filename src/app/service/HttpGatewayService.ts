@@ -10,6 +10,7 @@ import {AccountWorld} from '../account/AccountWorld';
 import {Application} from '../Application';
 import {TraefikWorld} from '../traefik/TraefikWorld';
 import {RestfulHandler} from '../handler/RestfulHandler';
+import {AssertType} from 'typescript-is';
 
 export interface IHttpGatewayOptions extends IServiceOptions {
   httpListener: IHTTPListenerOptions;
@@ -26,7 +27,7 @@ class HttpGatewayService extends Service {
     });
   }
 
-  constructor(name: string, options: IHttpGatewayOptions) {
+  constructor(name: string, @AssertType() options: IHttpGatewayOptions) {
     super(name, options);
     this.gatewayOptions_ = options;
   }

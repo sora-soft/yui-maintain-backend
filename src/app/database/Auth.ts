@@ -15,6 +15,11 @@ export class AuthGroup extends BaseModel {
   @OneToMany(() => AuthPermission, permission => permission.group)
   @JoinColumn({name: 'id'})
   permissions: AuthPermission[];
+
+  @Column({
+    default: false,
+  })
+  protected: boolean;
 }
 
 @Entity()

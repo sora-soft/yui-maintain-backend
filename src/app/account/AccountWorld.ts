@@ -6,7 +6,7 @@ import {AuthGroup, AuthPermission} from '../database/Auth';
 import {UserErrorCode} from '../ErrorCode';
 import {RedisKey} from '../Keys';
 import {UserError} from '../UserError';
-import {AuthGroupId, DefaultGroupList, DefaultPermissionList, IAccountSessionData, PermissionResult} from './AccountType';
+import {AuthGroupId, DefaultGroupList, DefaultPermissionList, IAccountSessionData, PermissionResult, RootGroupId} from './AccountType';
 import {validate} from 'class-validator';
 import {Application} from '../Application';
 
@@ -24,6 +24,7 @@ class AccountWorld {
       const group = new AuthGroup();
       group.id = data.id;
       group.name = data.name;
+      group.protected = data.protected;
       groups.push(group);
     }
     if (groups.length) {
@@ -58,6 +59,9 @@ class AccountWorld {
   }
 
   static async hasAuth(gid: AuthGroupId, name: string) {
+    if (gid === RootGroupId)
+      return;
+
     const permission = await Com.accountDB.manager.find(AuthPermission, {
       gid,
       name,
@@ -71,37 +75,37 @@ class AccountWorld {
 
   static async createAccount(account: Partial<Account>) {
     const exited = await Com.accountDB.manager.findOne(Account, {
-        where: [{
-          email: account.email,
-        }, {
-          username: account.username,
-        }]
-      });
-      if (exited) {
-        if (exited.username === account.username)
-          throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, `ERR_DUPLICATE_USERNAME`);
+      where: [{
+        email: account.email,
+      }, {
+        username: account.username,
+      }],
+    });
+    if (exited) {
+      if (exited.username === account.username)
+        throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, `ERR_DUPLICATE_USERNAME`);
 
-        if (exited.email === account.email)
-          throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, `ERR_DUPLICATE_EMAIL`);
-      }
+      if (exited.email === account.email)
+        throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, `ERR_DUPLICATE_EMAIL`);
+    }
 
-      const newAccount = new Account();
-      newAccount.salt = Random.randomString(20);
-      newAccount.username = account.username;
-      newAccount.password = Hash.md5(account.password + newAccount.salt);
-      newAccount.email = account.email;
-      newAccount.gid = account.gid;
+    const newAccount = new Account();
+    newAccount.salt = Random.randomString(20);
+    newAccount.username = account.username;
+    newAccount.password = Hash.md5(account.password + newAccount.salt);
+    newAccount.email = account.email;
+    newAccount.gid = account.gid;
 
-      const errors = await validate(newAccount);
-      if (errors.length) {
-        throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
-      }
+    const errors = await validate(newAccount);
+    if (errors.length) {
+      throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
+    }
 
-      const createdAccount = await Com.accountDB.manager.save(newAccount);
+    const createdAccount = await Com.accountDB.manager.save(newAccount);
 
-      Application.appLog.info('gateway', { event: 'create-account', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
+    Application.appLog.info('gateway', { event: 'create-account', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
 
-      return createdAccount;
+    return createdAccount;
   }
 }
 

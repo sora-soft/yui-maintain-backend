@@ -1,3 +1,4 @@
 export enum WorkerName {
-  DatabaseMigrate = 'database-migrate'
+  DatabaseMigrateCommand = 'database-migrate-command',
+  AuthCommand = 'auth-command',
 }

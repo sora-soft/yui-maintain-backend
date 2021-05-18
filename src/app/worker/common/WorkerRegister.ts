@@ -1,8 +1,10 @@
-import {DatabaseMigrateWorker} from '../DatabaseMigrateWorker';
+import {DatabaseMigrateCommandWorker} from '../DatabaseMigrateCommandWorker';
+import {AuthCommandWorker} from '../AuthCommandWorker';
 
 class WorkerRegister {
   static init() {
-    DatabaseMigrateWorker.register();
+    DatabaseMigrateCommandWorker.register();
+    AuthCommandWorker.register();
   }
 }
 

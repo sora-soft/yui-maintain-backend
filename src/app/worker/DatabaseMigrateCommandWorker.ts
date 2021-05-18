@@ -11,19 +11,20 @@ import path = require('path');
 import moment = require('moment');
 import {UserError} from '../UserError';
 import {UserErrorCode} from '../ErrorCode';
+import {AssertType} from 'typescript-is';
 
-export interface IDatabaseMigrateWorkerOptions extends IWorkerOptions {
+export interface IDatabaseMigrateCommandWorkerOptions extends IWorkerOptions {
   components: ComponentName[];
 }
 
-class DatabaseMigrateWorker extends Worker {
+class DatabaseMigrateCommandWorker extends Worker {
   static register() {
-    Node.registerWorker(WorkerName.DatabaseMigrate, (options: IDatabaseMigrateWorkerOptions) => {
-      return new DatabaseMigrateWorker(WorkerName.DatabaseMigrate, options);
+    Node.registerWorker(WorkerName.DatabaseMigrateCommand, (options: IDatabaseMigrateCommandWorkerOptions) => {
+      return new DatabaseMigrateCommandWorker(WorkerName.DatabaseMigrateCommand, options);
     });
   }
 
-  constructor(name: string, options: IDatabaseMigrateWorkerOptions) {
+  constructor(name: string, @AssertType() options: IDatabaseMigrateCommandWorkerOptions) {
     super(name);
     this.options_ = options;
   }
@@ -202,7 +203,7 @@ ${downSqls.reverse().join('\n')}
     return true;
   }
 
-  private options_: IDatabaseMigrateWorkerOptions;
+  private options_: IDatabaseMigrateCommandWorkerOptions;
 }
 
-export {DatabaseMigrateWorker}
+export {DatabaseMigrateCommandWorker}

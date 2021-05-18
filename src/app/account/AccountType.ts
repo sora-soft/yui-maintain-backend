@@ -15,18 +15,32 @@ export enum PermissionResult {
 }
 
 // 默认游客 gid
-export const GuestGroupId = 'd36a956b-7494-480c-8bd9-66b77c89a38c';
+export const GuestGroupId: AuthGroupId = 'd36a956b-7494-480c-8bd9-66b77c89a38c';
 
 // 注册用户
-export const UserGroupId = 'ebba2b40-25b3-4178-8c8a-6a6eca2def99';
+export const UserGroupId: AuthGroupId = 'ebba2b40-25b3-4178-8c8a-6a6eca2def99';
 
-// 注册用户组别
+// 超权用户
+export const RootGroupId: AuthGroupId = 'cbe3f8c8-44bc-44ef-9a61-3bc4f6692a12';
+
+// 默认用户组别
 export const DefaultGroupList: Partial<AuthGroup>[] = [
   {
     id: UserGroupId,
     name: 'User',
+  },
+  {
+    id: RootGroupId,
+    name: 'Root',
+    protected: true,
   }
 ];
 
 // 默认游客权限
-export const DefaultPermissionList: Partial<AuthPermission>[] = [];
+export const DefaultPermissionList: Partial<AuthPermission>[] = [
+  {
+    gid: RootGroupId,
+    name: 'root',
+    permission: PermissionResult.ALLOW
+  }
+];

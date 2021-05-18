@@ -1,4 +1,5 @@
 import {IServiceOptions, ITCPListenerOptions, Node, Route, Service, TCPListener} from '@sora-soft/framework';
+import {AssertType} from 'typescript-is';
 import {Com} from '../../lib/Com';
 import {Account} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
@@ -16,7 +17,7 @@ class RestfulService extends Service {
     });
   }
 
-  constructor(name: string, options: IRestOptions) {
+  constructor(name: string, @AssertType() options: IRestOptions) {
     super(name, options);
     this.serviceConfig_ = options;
   }
