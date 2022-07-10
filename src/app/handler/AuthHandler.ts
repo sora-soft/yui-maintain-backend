@@ -1,10 +1,15 @@
 import {Route} from '@sora-soft/framework';
-import {AssertType} from 'typescript-is';
+import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
-import {AuthGroupId, PermissionResult, RootGroupId} from '../account/AccountType';
+import {AccountRoute} from '../../lib/route/AccountRoute';
+import {AuthRoute} from '../../lib/route/AuthRoute';
+import {Random, UnixTime} from '../../lib/Utility';
+import {AccountId, AuthGroupId, PermissionResult, RootGroupId} from '../account/AccountType';
 import {AccountWorld} from '../account/AccountWorld';
+import {Account} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
 import {UserErrorCode} from '../ErrorCode';
+import {RedisKey} from '../Keys';
 import {UserError} from '../UserError';
 
 export interface IUpdatePermissionReq {
@@ -17,17 +22,59 @@ export interface IUpdatePermissionReq {
 
 export interface IReqCreateAccount {
   username: string;
+  nickname: string;
   email: string;
-  gid: string;
+  gid: AuthGroupId;
   password: string;
 }
 
-class AuthHandler extends Route {
+export interface IReqResetPassword {
+  id: AccountId;
+  password: string;
+}
+
+export interface IReqRequestForgetPassword {
+  email: string;
+}
+
+export interface IReqForgetPassword {
+  id: string;
+  code: string;
+  password: string;
+}
+
+export interface IReqDeleteAccessKey {
+  id: string;
+}
+
+export interface IReqFetchAccessKey {
+  offset: number;
+  limit: number;
+}
+
+@ValidateClass()
+class AuthHandler extends AuthRoute {
   @Route.method
+  @AccountRoute.id()
+  async fetchAccountList(body: void) {
+    const list = await Com.businessDB.manager.find(Account, {
+      select: ['id', 'nickname'],
+    });
+
+    return {
+      list,
+    };
+  }
+
+  @Route.method
+  @AuthRoute.auth()
   async updatePermission(@AssertType() body: IUpdatePermissionReq) {
     const list: AuthPermission[] = [];
 
-    const group = await Com.accountDB.manager.findOne(AuthGroup, body.gid);
+    const group = await Com.businessDB.manager.findOne(AuthGroup, body.gid);
+
+    if (!group)
+      throw new UserError(UserErrorCode.ERR_GROUP_NOT_FOUND, `ERR_GROUP_NOT_FOUND`);
 
     if (group.protected)
       throw new UserError(UserErrorCode.ERR_PROTECTED_GROUP, `ERR_PROTECTED_GROUP`);
@@ -39,20 +86,75 @@ class AuthHandler extends Route {
       authPermission.permission = p.permission;
       list.push(authPermission);
     }
-    await Com.accountDB.manager.save(list);
+    await Com.businessDB.manager.save(list);
   }
 
   @Route.method
+  @AuthRoute.auth()
   async createAccount(@AssertType() body: IReqCreateAccount) {
-    const group = await Com.accountDB.manager.findOne(AuthGroup, body.gid);
+    const group = await Com.businessDB.manager.findOne(AuthGroup, body.gid);
+
+    if (!group)
+      throw new UserError(UserErrorCode.ERR_GROUP_NOT_FOUND, `ERR_GROUP_NOT_FOUND`);
+
     if (group.protected)
       throw new UserError(UserErrorCode.ERR_CANT_CREATE_ROOT, `ERR_CANT_CREATE_ROOT`);
 
-    const account = await AccountWorld.createAccount(body);
+    const account = await AccountWorld.createAccount({
+      email: body.email,
+      gid: body.gid,
+      nickname: body.nickname,
+    }, {
+      username: body.username,
+      password: body.password,
+    });
 
     return {
       id: account.id,
     };
+  }
+
+  @Route.method
+  @AuthRoute.auth()
+  async resetPassword(@AssertType() body: IReqResetPassword) {
+    const account = await Com.businessDB.manager.findOne(Account, body.id);
+    if (!account)
+      throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
+
+    await AccountWorld.resetAccountPassword(account, body.password);
+
+    return {};
+  }
+
+  @Route.method
+  async requestForgetPassword(@AssertType() body: IReqRequestForgetPassword) {
+    const account = await Com.businessDB.manager.findOne(Account, {
+      email: body.email,
+    });
+
+    if (!account)
+      throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
+
+    const code = Random.randomString(4).toUpperCase();
+    const id = await AccountWorld.sendAccountResetPassEmail(account, code);
+
+    return {id};
+  }
+
+  @Route.method
+  async forgetPassword(@AssertType() body: IReqForgetPassword) {
+    const info = await AccountWorld.getAccountResetPassCode(body.id);
+    if (!info || info.code !== body.code)
+      throw new UserError(UserErrorCode.ERR_WRONG_EMAIL_CODE, `ERR_WRONG_EMAIL_CODE`);
+
+    const account = await Com.businessDB.manager.findOne(Account, info.accountId);
+    if (!account)
+      throw new UserError(UserErrorCode.ERR_WRONG_EMAIL_CODE, `ERR_WRONG_EMAIL_CODE`);
+
+    await AccountWorld.resetAccountPassword(account, body.password);
+    await Com.businessRedis.client.del(RedisKey.resetPasswordCode(body.id));
+
+    return {};
   }
 }
 

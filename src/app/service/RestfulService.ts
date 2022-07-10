@@ -1,5 +1,5 @@
 import {IServiceOptions, ITCPListenerOptions, Node, Route, Service, TCPListener} from '@sora-soft/framework';
-import {AssertType} from 'typescript-is';
+import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
 import {Account} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
@@ -10,6 +10,7 @@ export interface IRestOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
 }
 
+@ValidateClass()
 class RestfulService extends Service {
   static register() {
     Node.registerService(ServiceName.Restful, (options: IRestOptions) => {
@@ -23,23 +24,23 @@ class RestfulService extends Service {
   }
 
   protected async startup() {
-    await this.connectComponent(Com.accountDB);
+    await this.connectComponent(Com.businessDB);
 
     const route = new RestfulHandler(this, [
       {
         name: 'account',
-        com: Com.accountDB,
+        com: Com.businessDB,
         entity: Account,
         select: ['id', 'username', 'email', 'gid', 'createAt', 'updateAt'],
       },
       {
         name: 'auth-group',
-        com: Com.accountDB,
+        com: Com.businessDB,
         entity: AuthGroup,
       },
       {
         name: 'auth-permission',
-        com: Com.accountDB,
+        com: Com.businessDB,
         entity: AuthPermission,
       }
     ]);

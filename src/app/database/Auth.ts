@@ -1,10 +1,13 @@
-import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from 'typeorm';
+import {Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from 'typeorm';
+import {UnixTime} from '../../lib/Utility';
 import {AuthGroupId, PermissionResult} from '../account/AccountType';
-import {BaseModel} from './base/Base';
+import {Timestamp} from './Type';
 
-@Entity()
-export class AuthGroup extends BaseModel {
-  @PrimaryGeneratedColumn('uuid')
+@Entity({
+  engine: 'InnoDB AUTO_INCREMENT=1000'
+})
+export class AuthGroup {
+  @PrimaryGeneratedColumn()
   id: AuthGroupId;
 
   @Column({
@@ -20,10 +23,18 @@ export class AuthGroup extends BaseModel {
     default: false,
   })
   protected: boolean;
+
+  @Column({
+    transformer: {
+      to: (value?: number) => (value ? value : UnixTime.now()),
+      from: (value?: number) => value,
+    }
+  })
+  createTime: Timestamp;
 }
 
 @Entity()
-export class AuthPermission extends BaseModel {
+export class AuthPermission {
   @PrimaryColumn()
   gid: AuthGroupId;
 
@@ -33,8 +44,6 @@ export class AuthPermission extends BaseModel {
   name: string;
 
   @Column({
-    type: 'enum',
-    enum: [PermissionResult.ALLOW, PermissionResult.DENY],
     default: PermissionResult.DENY,
   })
   permission: PermissionResult;

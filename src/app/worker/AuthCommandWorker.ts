@@ -4,11 +4,15 @@ import {RootGroupId} from '../account/AccountType';
 import {AccountWorld} from '../account/AccountWorld';
 import {WorkerName} from './common/WorkerName';
 import * as md5 from 'md5';
-import {AssertType} from 'typescript-is';
+import {AssertType, ValidateClass} from 'typescript-is';
+import {UserError} from '../UserError';
+import {AppErrorCode, UserErrorCode} from '../ErrorCode';
+import {AppError} from '../AppError';
 
 export interface IAuthCommandWorkerOptions extends IWorkerOptions {
 }
 
+@ValidateClass()
 class AuthCommandWorker extends Worker {
   static register() {
     Node.registerWorker(WorkerName.AuthCommand, (options: IAuthCommandWorkerOptions) => {
@@ -22,7 +26,7 @@ class AuthCommandWorker extends Worker {
   }
 
   protected async startup() {
-    await this.connectComponents([Com.accountDB]);
+    await this.connectComponents([Com.businessDB]);
     await AccountWorld.startup();
   }
 
@@ -40,17 +44,18 @@ class AuthCommandWorker extends Worker {
 
         const md5Password = md5(password);
 
-        const accInfo = {
-          username,
-          password: md5Password,
+        await AccountWorld.createAccount({
+          nickname: username,
           email,
           gid: RootGroupId,
-        };
-        await AccountWorld.createAccount(accInfo);
+        }, {
+          username,
+          password: md5Password,
+        });
         break;
       }
       default: {
-        break;
+        throw new AppError(AppErrorCode.ERR_COMMAND_NOT_FOUND, `ERR_COMMAND_NOT_FOUND`);
       }
     }
     return true;

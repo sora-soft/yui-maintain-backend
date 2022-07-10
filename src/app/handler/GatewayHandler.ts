@@ -1,81 +1,93 @@
 import {Request, Route, RPCHeader} from '@sora-soft/framework';
-import {validate} from 'class-validator';
 import {Com} from '../../lib/Com';
-import {Account} from '../database/Account';
+import {Account, AccountPassword} from '../database/Account';
 import {UserErrorCode} from '../ErrorCode';
-import {AccountLock} from '../account/AccountLock';
-import {AccountType} from '../../lib/Enum';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {UserError} from '../UserError';
 import {AccountWorld} from '../account/AccountWorld';
 import {ForwardRoute} from '../../lib/route/ForwardRoute';
 import {UserGroupId} from '../account/AccountType';
 import {Application} from '../Application';
-import {Hash, Random} from '../../lib/Utility';
+import {Hash, NodeTime, Random} from '../../lib/Utility';
 import {AuthPermission} from '../database/Auth';
 
 export interface IRegisterReq {
   username: string;
   password: string;
+  nickname: string;
   email: string;
 }
 
 export interface ILoginReq {
   username: string;
   password: string;
+  remember: boolean;
+}
+
+export interface IAKLoginReq {
+  accessKey: string;
+  secretKey: string;
 }
 
 @ValidateClass()
 class GatewayHandler extends ForwardRoute {
   @Route.method
   async register(@AssertType() body: IRegisterReq) {
-    return AccountLock.registerLock(AccountType.Admin, body.username, body.email, async () => {
-      const account = await AccountWorld.createAccount({
-        ...body,
-        gid: UserGroupId,
-      });
-
-      return {
-        id: account.id,
-      };
+    const account = await AccountWorld.createAccount({
+      email: body.email,
+      nickname: body.nickname,
+      gid: UserGroupId,
+    }, {
+      username: body.username,
+      password: body.password,
     });
+
+    return {
+      id: account.id,
+    };
   }
 
   @Route.method
   async login(@AssertType() body: ILoginReq, request: Request<ILoginReq>) {
-    const account = await Com.accountDB.manager.findOne(Account, {
+    const userPass = await Com.businessDB.manager.findOne(AccountPassword, {
       where: {
         username: body.username,
       },
     });
-    if (!account)
+    if (!userPass)
       throw new UserError(UserErrorCode.ERR_USERNAME_NOT_FOUND, `ERR_USERNAME_NOT_FOUND`);
 
-    const password = Hash.md5(body.password + account.salt);
+    const password = Hash.md5(body.password + userPass.salt);
 
-    if (account.password !== password)
+    if (userPass.password !== password)
       throw new UserError(UserErrorCode.ERR_WRONG_PASSWORD, `ERR_WRONG_PASSWORD`);
 
     const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
 
-    await AccountWorld.setAccountSession(session, {
-      accountId: account.id,
-      gid: account.gid,
-    });
+    const account = await Com.businessDB.manager.findOne(Account, userPass.id);
 
-    const permissions = await Com.accountDB.manager.find(AuthPermission, {
+    if (!account)
+      throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
+
+    await AccountWorld.setAccountSession(session, {
+      accountId: userPass.id,
+      gid: account.gid,
+    }, body.remember ? NodeTime.day(5) : NodeTime.hour(8));
+
+    const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
       where: {
         gid: account.gid,
       }
     });
 
-    Application.appLog.info('gateway', { event: 'account-login', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
+    Application.appLog.info('gateway', { event: 'account-login', account: { id: userPass.id, gid: account.gid, email: account.email, username: userPass.username } });
 
     return {
       account: {
-        username: account.username,
+        username: userPass.username,
         email: account.email,
+        nickname: account.nickname,
       },
       permissions
     };
@@ -89,18 +101,29 @@ class GatewayHandler extends ForwardRoute {
     if (!cache)
       throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
 
-    const account = await Com.accountDB.manager.findOne(Account, cache.accountId);
-    const permissions = await Com.accountDB.manager.find(AuthPermission, {
+    const account = await Com.businessDB.manager.findOne(Account, {
+      where: {
+        id: cache.accountId
+      },
+      relations: ['userPass']
+    });
+
+    if (!account)
+      throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
+
+    const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
       where: {
         gid: cache.gid,
-      }
+      },
     });
 
     return {
       account: {
-        username: account.username,
+        id: account.id,
+        username: account.userPass.username,
         email: account.email,
+        nickname: account.nickname,
       },
       permissions
     };

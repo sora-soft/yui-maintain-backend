@@ -11,12 +11,14 @@ import path = require('path');
 import moment = require('moment');
 import {UserError} from '../UserError';
 import {UserErrorCode} from '../ErrorCode';
-import {AssertType} from 'typescript-is';
+import {AssertType, ValidateClass} from 'typescript-is';
+import {MysqlConnectionOptions} from 'typeorm/driver/mysql/MysqlConnectionOptions';
 
 export interface IDatabaseMigrateCommandWorkerOptions extends IWorkerOptions {
   components: ComponentName[];
 }
 
+@ValidateClass()
 class DatabaseMigrateCommandWorker extends Worker {
   static register() {
     Node.registerWorker(WorkerName.DatabaseMigrateCommand, (options: IDatabaseMigrateCommandWorkerOptions) => {
@@ -88,7 +90,7 @@ ${downSqls.reverse().join('\n')}
   }
 };
 `
-            await fs.writeFile(path.resolve(projectPath, soraConfig.root, migrationPath, moment().format('YYYYMMDD') + className + '.ts'), file);
+            await fs.writeFile(path.resolve(projectPath, soraConfig.root, migrationPath, name, moment().format('YYYYMMDD') + className + '.ts'), file);
           }
 
           await connection.close();
@@ -113,14 +115,9 @@ ${downSqls.reverse().join('\n')}
         break;
       }
       case 'migrate': {
-        const [_, componentName, migration] = commands;
+        const [_, componentName] = commands;
         if (!componentName) {
           Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID`), 'Component name needed');
-          return false;
-        }
-
-        if (!migration) {
-          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID`), 'Migration name needed');
           return false;
         }
 
@@ -135,15 +132,18 @@ ${downSqls.reverse().join('\n')}
         const soraConfig = require(`${projectPath}/sora.json`);
         const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration);
 
+        const files = await fs.readdir(path.join(migrationPath, componentName));
+        const migrationList = files.map((file) => path.join(migrationPath, componentName, file)).filter((file) => path.extname(file) === '.js');
+
         const connection = await createConnection({
           ...options.database,
           entities: component.entities,
           migrationsRun: false,
-          migrations: [path.join(migrationPath, `${migration}.js`)]
+          migrations: migrationList,
         });
 
         await connection.runMigrations({
-          transaction: 'each'
+          transaction: 'all',
         });
 
         await connection.close();
@@ -167,7 +167,7 @@ ${downSqls.reverse().join('\n')}
 
         const projectPath = path.resolve(__dirname, '../../../');
         const soraConfig = require(`${projectPath}/sora.json`);
-        const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration);
+        const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration, componentName);
 
         const connection = await createConnection({
           ...options.database,
@@ -176,7 +176,7 @@ ${downSqls.reverse().join('\n')}
         });
 
         await connection.undoLastMigration({
-          transaction: 'each'
+          transaction: 'all',
         });
 
         await connection.close();

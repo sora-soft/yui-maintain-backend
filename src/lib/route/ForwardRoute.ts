@@ -1,91 +1,54 @@
-import {ErrorLevel, ExError, IRawNetPacket, ListenerCallback, Logger, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, Runtime, Service} from '@sora-soft/framework';
-import {AuthGroupId, GuestGroupId} from '../../app/account/AccountType';
+import {ErrorLevel, ExError, IRawNetPacket, Logger, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, RPCResponseError, Runtime, Service} from '@sora-soft/framework';
+import {GuestGroupId} from '../../app/account/AccountType';
 import {AccountWorld} from '../../app/account/AccountWorld';
-import {UserErrorCode} from '../../app/ErrorCode';
+import {Application} from '../../app/Application';
+import {UserErrorCode, AppErrorCode} from '../../app/ErrorCode';
 import {ServiceName} from '../../app/service/common/ServiceName';
-import {UserError} from '../../app/UserError';
-import {ForwardRPCHeader} from '../Const';
+import {AuthRPCHeader, ForwardRPCHeader} from '../Const';
+import {NodeTime} from '../Utility';
 
-export type AuthChecker = (gid: AuthGroupId, service: string, method: string, request: Request<unknown>) => Promise<boolean>;
-
-interface IRouteInfo {
-  provider: Provider<Route>,
-  authChecker?: AuthChecker;
-};
-
-type RouteMap = { [key in ServiceName]?: IRouteInfo | Provider<Route>};
-
-const defaultAuthChecker: AuthChecker = async (gid, service, method) => {
-  return await AccountWorld.hasAuth(gid, `${service}.${method}`);
-}
-
-const alwaysAllowAuthChecker: AuthChecker = async () => {
-  return true;
-}
+type RouteMap = { [key in ServiceName]?: Provider<Route>};
 
 class ForwardRoute<T extends Service = Service> extends Route<T> {
-  constructor(service: T, route: RouteMap, skipAuthCheck: boolean) {
+  constructor(service: T, route: RouteMap) {
     super(service);
-    this.routeMap_ = new Map();
+    this.providerMap_ = new Map();
     for (const [name, value] of Object.entries(route)) {
-      let info: IRouteInfo;
-      if (value instanceof Provider) {
-        info = {
-          provider: value
-        };
-      } else {
-        info = value;
+      if (value) {
+        this.providerMap_.set(name, value);
       }
-
-      if (skipAuthCheck) {
-        info.authChecker = alwaysAllowAuthChecker;
-      }
-
-      this.routeMap_.set(name, info);
     }
   }
 
-  private routeMap_: Map<string, IRouteInfo>;
+  private providerMap_: Map<string, Provider<Route>>;
 
   private getProvider(service: ServiceName) {
-    if (!this.routeMap_.has(service as ServiceName))
+    if (!this.providerMap_.has(service as ServiceName))
       throw new RPCError(RPCErrorCode.ERR_RPC_SERVICE_NOT_FOUND, `ERR_RPC_SERVICE_NOT_FOUND, service=${service}`);
 
-    const info: IRouteInfo = this.routeMap_.get(service);
-    if (!info)
-      throw new RPCError(RPCErrorCode.ERR_RPC_PROVIDER_NOT_AVAILABLE, `ERR_RPC_PROVIDER_NOT_AVAILABLE, service=${service}`);
-
-    const provider: Provider<Route> = info.provider;
+    const provider: Provider<Route> | undefined = this.providerMap_.get(service);
     if (!provider)
       throw new RPCError(RPCErrorCode.ERR_RPC_PROVIDER_NOT_AVAILABLE, `ERR_RPC_PROVIDER_NOT_AVAILABLE, service=${service}`);
 
     return provider;
   }
 
-  private getAuthChecker(service: ServiceName) {
-    if (!this.routeMap_.has(service as ServiceName))
-      throw new RPCError(RPCErrorCode.ERR_RPC_SERVICE_NOT_FOUND, `ERR_RPC_SERVICE_NOT_FOUND, service=${service}`);
-
-    const info: IRouteInfo = this.routeMap_.get(service);
-    if (!info)
-      throw new RPCError(RPCErrorCode.ERR_RPC_PROVIDER_NOT_AVAILABLE, `ERR_RPC_PROVIDER_NOT_AVAILABLE, service=${service}`);
-
-    return info.authChecker || defaultAuthChecker;
-  }
-
-  static callback(route: ForwardRoute): ListenerCallback {
-    return async (packet: IRawNetPacket, session: string) => {
+  static callback(route: ForwardRoute) {
+    return (async (packet: IRawNetPacket, session: string) => {
       const account = await AccountWorld.getAccountSession(session);
       const gid = account ? account.gid : GuestGroupId;
-
-      const [service, method] = packet.path.split('/').slice(-2) as [ServiceName, string];
-      const shouldForward = service !== route.service.name;
 
       const startTime = Date.now();
       switch (packet.opcode) {
         case OPCode.REQUEST: {
           const request = new Request(packet);
           const response = new Response();
+          if (!packet.path)
+            this.makeErrorRPCResponse(request, response, new RPCResponseError(RPCErrorCode.ERR_RPC_METHOD_NOT_FOUND, ErrorLevel.EXPECTED, `ERR_RPC_METHOD_NOT_FOUND`))
+
+          const [service, method] = packet.path?.split('/').slice(-2) as [ServiceName, string];
+          const shouldForward = service !== route.service.name;
+
           const rpcId = request.getHeader(RPCHeader.RPC_ID_HEADER);
           request.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
           Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: request.method, request: request.payload });
@@ -111,47 +74,41 @@ class ForwardRoute<T extends Service = Service> extends Route<T> {
             Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: request.method, request: request.payload, response: response.payload, duration: Date.now() - startTime });
             return response.toPacket();
           } else {
-            // 权限验证
-            const authChecker = route.getAuthChecker(service);
-            const allowed = await authChecker(gid, service, method, request);
-            if (!allowed) {
-              const error = new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${service}.${method}`);
-              Runtime.rpcLogger.debug('forward-route', { event: 'forward-handler', session, error: UserErrorCode.ERR_AUTH_DENY, message: `ERR_AUTH_DENY, name=${service}.${method}` });
-
-              response.payload = {
-                error: {
-                  code: error.code,
-                  level: error.level,
-                  name: error.name,
-                  message: error.message,
-                },
-                result: null,
-              };
-              return response.toPacket();
-            }
-
             // 转发至其他服务
             const provider = route.getProvider(service);
-
-            if (!provider.caller.rpc(route.service.id)[method])
-              throw new RPCError(RPCErrorCode.ERR_RPC_METHOD_NOT_FOUND, `ERR_RPC_METHOD_NOT_FOUND, forward=${route.service.name}, service=${service}, method=${method}`);
 
             const res: Response<unknown> = await provider.caller.rpc(route.service.id)[method](request.payload, {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
-                [ForwardRPCHeader.RPC_AUTH_GID]: gid,
-                [ForwardRPCHeader.RPC_NEED_AUTH_CHECK]: true,
+                [AuthRPCHeader.RPC_AUTH_GID]: gid,
+                [AuthRPCHeader.RPC_ACCOUNT_ID]: account ? account.accountId : null
+              },
+              timeout: NodeTime.second(60),
+            }, true).catch((error: ExError) => {
+              switch (error.level) {
+                case ErrorLevel.EXPECTED:
+                  throw new RPCResponseError(error.code as RPCErrorCode, ErrorLevel.EXPECTED, error.message);
+                default:
+                  Application.appLog.error('forward-route', error, { error: Logger.errorMessage(error), service, method });
+                  throw new RPCResponseError(UserErrorCode.ERR_SERVER_INTERNAL, ErrorLevel.UNEXPECTED, `ERR_SERVER_INTERNAL`);
               }
-            }, true);
+            });
+            response.payload = res.payload;
             Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: request.method, duration: Date.now() - startTime });
-            return res.toPacket();
+            return response.toPacket();
           }
         }
         case OPCode.NOTIFY: {
           const notify = new Notify(packet);
           notify.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
           Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method, notify: notify.payload });
+
+          if (!packet.path)
+            return;
+
+          const [service, method] = packet.path?.split('/').slice(-2) as [ServiceName, string];
+          const shouldForward = service !== route.service.name;
 
           if (!shouldForward) {
             // 调用 route 本身方法
@@ -171,15 +128,12 @@ class ForwardRoute<T extends Service = Service> extends Route<T> {
             // 转发至其他服务
             const provider = route.getProvider(service as ServiceName);
 
-            if (!provider.caller.notify(route.service.id)[method])
-              throw new RPCError(RPCErrorCode.ERR_RPC_METHOD_NOT_FOUND, `ERR_RPC_METHOD_NOT_FOUND, forward=${route.service.name}, service=${service}, method=${method}`);
-
             await provider.caller.notify(route.service.id)[method](notify.payload, {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
-                [ForwardRPCHeader.RPC_AUTH_GID]: gid,
-                [ForwardRPCHeader.RPC_NEED_AUTH_CHECK]: true,
+                [AuthRPCHeader.RPC_AUTH_GID]: gid,
+                [AuthRPCHeader.RPC_ACCOUNT_ID]: account ? account.accountId : null
               }
             });
             Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method, duration: Date.now() - startTime });
@@ -190,7 +144,7 @@ class ForwardRoute<T extends Service = Service> extends Route<T> {
           // 不应该在路由处收到 rpc 回包消息
           return null;
       }
-    }
+    }) as any;
   }
 }
 

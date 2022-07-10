@@ -1,14 +1,17 @@
-import {Hash, Random} from '../../lib/Utility';
+import {Hash, NodeTime, Random, UnixTime} from '../../lib/Utility';
 import {Com} from '../../lib/Com';
 import {TimeConst} from '../Const';
-import {Account} from '../database/Account';
+import {Account, AccountPassword} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
 import {UserErrorCode} from '../ErrorCode';
 import {RedisKey} from '../Keys';
 import {UserError} from '../UserError';
-import {AuthGroupId, DefaultGroupList, DefaultPermissionList, IAccountSessionData, PermissionResult, RootGroupId} from './AccountType';
+import {AccountId, AuthGroupId, DefaultGroupList, DefaultPermissionList, IAccountSessionData, PermissionResult, RootGroupId} from './AccountType';
 import {validate} from 'class-validator';
 import {Application} from '../Application';
+import {AccountType} from '../../lib/Enum';
+import {AccountLock} from './AccountLock';
+import {ForgetPasswordEmail} from './AccountEmail';
 
 class AccountWorld {
   static async startup() {
@@ -21,14 +24,19 @@ class AccountWorld {
   static async loadDefaultGroup() {
     const groups: AuthGroup [] = [];
     for (const data of DefaultGroupList) {
+      const existed = await Com.businessDB.manager.findOne(AuthGroup, data.id);
+      if (existed)
+        continue;
+
       const group = new AuthGroup();
       group.id = data.id;
       group.name = data.name;
       group.protected = data.protected;
+      group.createTime = UnixTime.now();
       groups.push(group);
     }
     if (groups.length) {
-      await Com.accountDB.manager.save(groups);
+      await Com.businessDB.manager.save(groups);
     }
   }
 
@@ -42,27 +50,27 @@ class AccountWorld {
       permissions.push(permission);
     }
     if (permissions.length) {
-      await Com.accountDB.manager.save(permissions);
+      await Com.businessDB.manager.save(permissions);
     }
   }
 
-  static async setAccountSession(session: string, data: IAccountSessionData) {
-    await Com.accountRedis.setJSON(RedisKey.accountSession(session), data, 8 * TimeConst.hour);
+  static async setAccountSession(session: string, data: IAccountSessionData, expire: number = NodeTime.hour(8)) {
+    await Com.businessRedis.setJSON(RedisKey.accountSession(session), data, expire);
   }
 
   static async getAccountSession(session: string): Promise<IAccountSessionData> {
-    return Com.accountRedis.getJSON(RedisKey.accountSession(session));
+    return Com.businessRedis.getJSON(RedisKey.accountSession(session));
   }
 
   static async deleteAccountSession(session: string) {
-    return Com.accountRedis.client.del(RedisKey.accountSession(session));
+    return Com.businessRedis.client.del(RedisKey.accountSession(session));
   }
 
   static async hasAuth(gid: AuthGroupId, name: string) {
     if (gid === RootGroupId)
-      return;
+      return true;
 
-    const permission = await Com.accountDB.manager.find(AuthPermission, {
+    const permission = await Com.businessDB.manager.find(AuthPermission, {
       gid,
       name,
     });
@@ -73,39 +81,93 @@ class AccountWorld {
     return permission.every((p) => { return p.permission === PermissionResult.ALLOW });
   }
 
-  static async createAccount(account: Partial<Account>) {
-    const exited = await Com.accountDB.manager.findOne(Account, {
-      where: [{
-        email: account.email,
-      }, {
-        username: account.username,
-      }],
+  static async resetAccountPassword(account: Partial<Account>, password: string) {
+    const salt = Random.randomString(20);
+    const hashedPassword = Hash.md5(password + salt);
+    await Com.businessDB.manager.update(AccountPassword, account.id, {
+      password: hashedPassword,
+      salt,
     });
-    if (exited) {
-      if (exited.username === account.username)
+
+    Application.appLog.info('account-world', { event: 'reset-password', accountId: account.id });
+  }
+
+  static async sendAccountResetPassEmail(account: Account, code: string) {
+    const template = ForgetPasswordEmail(code);
+    await Com.aliCloud.pop.sendSingleEmail({
+      ToAddress: account.email,
+      Subject: template.subject,
+      HtmlBody: template.bodyHtml,
+    });
+
+    const id = Random.randomString(8);
+    await Com.businessRedis.setJSON(RedisKey.resetPasswordCode(id), {accountId: account.id, code}, NodeTime.minute(10));
+    return id;
+  }
+
+  static async getAccountResetPassCode(id: string): Promise<{accountId: AccountId, code: string}> {
+    return Com.businessRedis.getJSON(RedisKey.resetPasswordCode(id));
+  }
+
+  static async createAccount(account: Pick<Account, 'email' | 'nickname' | 'gid'>, password: Pick<AccountPassword, 'username' | 'password'>) {
+    return AccountLock.registerLock(AccountType.Admin, password.username, account.email, account.nickname, async () => {
+      const emailExited = await Com.businessDB.manager.count(Account, {
+        where: [{
+          email: account.email,
+        }],
+      });
+      const usernameExited = await Com.businessDB.manager.count(AccountPassword, {
+        where: {
+          username: password.username,
+        }
+      });
+      const nicknameExited = await Com.businessDB.manager.count(Account, {
+        where: {
+          nickname: account.nickname
+        }
+      });
+
+      if (usernameExited)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, `ERR_DUPLICATE_USERNAME`);
 
-      if (exited.email === account.email)
+      if (emailExited)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, `ERR_DUPLICATE_EMAIL`);
-    }
 
-    const newAccount = new Account();
-    newAccount.salt = Random.randomString(20);
-    newAccount.username = account.username;
-    newAccount.password = Hash.md5(account.password + newAccount.salt);
-    newAccount.email = account.email;
-    newAccount.gid = account.gid;
+      if (nicknameExited)
+        throw new UserError(UserErrorCode.ERR_DUPLICATE_NICKNAME, `ERR_DUPLICATE_NICKNAME`);
 
-    const errors = await validate(newAccount);
-    if (errors.length) {
-      throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
-    }
+      const newAccount = new Account();
+      const accountPassword = new AccountPassword();
 
-    const createdAccount = await Com.accountDB.manager.save(newAccount);
+      accountPassword.username = password.username;
+      accountPassword.salt = Random.randomString(20);
+      accountPassword.password = Hash.md5(password.password + accountPassword.salt);
 
-    Application.appLog.info('gateway', { event: 'create-account', account: { id: account.id, gid: account.gid, email: account.email, username: account.username } });
+      newAccount.email = account.email;
+      newAccount.nickname = account.nickname;
+      newAccount.gid = account.gid;
+      newAccount.createTime = UnixTime.now();
 
-    return createdAccount;
+      const passErrors = await validate(accountPassword);
+      if (passErrors.length) {
+        throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${passErrors.map(e => e.property).join(',')}]`);
+      }
+      const accountErrors = await validate(newAccount);
+      if (accountErrors.length) {
+        throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${accountErrors.map(e => e.property).join(',')}]`);
+      }
+
+      const createdAccount = await Com.businessDB.manager.transaction(async (manager) => {
+        const savedAcc = await manager.save(newAccount);
+        accountPassword.id = savedAcc.id;
+        await manager.save(accountPassword);
+        return savedAcc;
+      });
+
+      Application.appLog.info('account-world', { event: 'create-account', account: { id: createdAccount.id, gid: account.gid, email: account.email, nickname: account.nickname, username: password.username } });
+
+      return createdAccount;
+    });
   }
 }
 

@@ -34,27 +34,27 @@ services:
       host: '<host>'
 
 components:
-  account-redis:
+  business-redis:
     host: <host>
     port: <port>
     db: <db>
-    prefix: 'test'
-  account-database:
+    prefix: <prefix>
+  business-database:
     database:
       type: 'mysql'
       host: <host>
       port: <port>
-      username: root
-      password: root
-      database: test
+      username: <username>
+      password: <password>
+      database: <database>
   etcd:
     etcd:
       hosts:
-      - '<etcd host>'
+      - '<host>'
     ttl: 60
-    prefix: 'test'
+    prefix: <prefix>
 
 workers:
   database-migrate:
     components:
-        - account-database
+        - business-database

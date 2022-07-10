@@ -2,7 +2,7 @@ import {TCPListener} from '@sora-soft/framework';
 import {ITCPListenerOptions} from '@sora-soft/framework';
 import {Route} from '@sora-soft/framework';
 import {IServiceOptions, Node, Service} from '@sora-soft/framework';
-import {AssertType} from 'typescript-is';
+import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
 import {AuthHandler} from '../handler/AuthHandler';
 import {ServiceName} from './common/ServiceName';
@@ -11,6 +11,7 @@ export interface IAuthOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
 }
 
+@ValidateClass()
 class AuthService extends Service {
   static register() {
     Node.registerService(ServiceName.Auth, (options: IAuthOptions) => {
@@ -24,7 +25,7 @@ class AuthService extends Service {
   }
 
   protected async startup() {
-    await this.connectComponent(Com.accountDB);
+    await this.connectComponent(Com.businessDB);
 
     const route = new AuthHandler(this);
 
