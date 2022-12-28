@@ -14,9 +14,7 @@
     "migrate:drop": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n database-migrate-command drop",
     "migrate:revert": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n database-migrate-command revert",
     "migrate:generate": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n database-migrate-command generate",
-    "auth": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n auth-command",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "link": "npm link @sora-soft/framework @sora-soft/etcd-discovery @sora-soft/http-support @sora-soft/redis-component @sora-soft/database-component @sora-soft/etcd-component"
+    "auth": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n auth-command"
   },
   "repository": "git@github.com/sora-soft/example-project.git",
   "keywords": [
@@ -28,13 +26,16 @@
     "url": "https://github.com/sora-soft/example-project/issues"
   },
   "homepage": "https://github.com/sora-soft/example-project#readme",
+  "resolutions": {
+    "typeorm": "0.3.11"
+  },
   "dependencies": {
     "@alicloud/pop-core": "^1.7.10",
-    "@sora-soft/database-component": "^1.1.0",
-    "@sora-soft/etcd-component": "^1.0.4",
-    "@sora-soft/etcd-discovery": "^1.0.8",
-    "@sora-soft/framework": "^1.4.3",
-    "@sora-soft/http-support": "^1.1.0",
+    "@sora-soft/database-component": "^1.2.0",
+    "@sora-soft/etcd-component": "^1.1.0",
+    "@sora-soft/etcd-discovery": "^1.1.0",
+    "@sora-soft/framework": "^1.5.0",
+    "@sora-soft/http-support": "^1.1.1",
     "@sora-soft/redis-component": "^1.0.7",
     "axios": "^0.21.1",
     "camelcase": "^6.2.0",
@@ -47,7 +48,7 @@
     "mysql2": "^2.2.5",
     "reflect-metadata": "^0.1.13",
     "source-map-support": "^0.5.19",
-    "typeorm": "^0.2.32",
+    "typeorm": "^0.3.11",
     "typescript-is": "^0.18.2"
   },
   "devDependencies": {

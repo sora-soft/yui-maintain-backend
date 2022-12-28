@@ -4,6 +4,8 @@ import {ConfigLoader} from './lib/ConfigLoader';
 import path = require('path');
 import 'reflect-metadata';
 import {ExError, Logger, Runtime} from '@sora-soft/framework';
+import {AppError} from './app/AppError';
+import {AppErrorCode} from './app/ErrorCode';
 
 export interface IStartupOptions {
   config: string;
@@ -13,7 +15,7 @@ export interface IStartupOptions {
 
 export async function container(options: IStartupOptions) {
   const config = await loadConfig(options);
-  await Application.startLog(config.debug).catch((err: ExError) => {
+  await Application.startLog(config.debug, config.logger).catch((err: ExError) => {
     // tslint:disable-next-line
     console.log(`${err.name}: ${err.message}`);
     process.exit(1);
@@ -27,7 +29,7 @@ export async function container(options: IStartupOptions) {
 
 export async function server(options: IStartupOptions) {
   const config = await loadConfig(options);
-  await Application.startLog(config.debug).catch((err: ExError) => {
+  await Application.startLog(config.debug, config.logger).catch((err: ExError) => {
     // tslint:disable-next-line
     console.log(`${err.name}: ${err.message}`);
     process.exit(1);
@@ -41,11 +43,18 @@ export async function server(options: IStartupOptions) {
 
 export async function command(options: IStartupOptions) {
   const config = await loadConfig(options);
-  await Application.startOnlyAppLog(config.debug).catch((err: ExError) => {
+  await Application.startOnlyAppLog(config.debug, config.logger).catch((err: ExError) => {
     // tslint:disable-next-line
     console.log(`${err.name}: ${err.message}`);
     process.exit(1);
   });
+
+  if (!options.name)
+    throw new AppError(AppErrorCode.ERR_COMMAND_NOT_FOUND, `ERR_COMMAND_NOT_FOUND`);
+
+  if (!options.arguments)
+    throw new AppError(AppErrorCode.ERR_COMMAND_NOT_FOUND, `ERR_COMMAND_NOT_FOUND`);
+
   await Application.startCommand(config, options.name, options.arguments).catch(async (err: ExError) => {
     Application.appLog.fatal('run-command', err, { error: Logger.errorMessage(err) });
     await Runtime.shutdown();

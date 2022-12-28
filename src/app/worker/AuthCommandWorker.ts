@@ -5,8 +5,7 @@ import {AccountWorld} from '../account/AccountWorld';
 import {WorkerName} from './common/WorkerName';
 import * as md5 from 'md5';
 import {AssertType, ValidateClass} from 'typescript-is';
-import {UserError} from '../UserError';
-import {AppErrorCode, UserErrorCode} from '../ErrorCode';
+import {AppErrorCode} from '../ErrorCode';
 import {AppError} from '../AppError';
 
 export interface IAuthCommandWorkerOptions extends IWorkerOptions {

@@ -7,7 +7,16 @@ import {Timestamp} from './Type';
   engine: 'InnoDB AUTO_INCREMENT=1000'
 })
 export class AuthGroup {
-  @PrimaryGeneratedColumn()
+  constructor(data?: Partial<AuthGroup>) {
+    if (!data)
+      return;
+
+    Object.entries(data).forEach(([key, value]) => {
+      this[key] = value;
+    });
+  }
+
+  @PrimaryGeneratedColumn('uuid')
   id: AuthGroupId;
 
   @Column({
@@ -35,7 +44,16 @@ export class AuthGroup {
 
 @Entity()
 export class AuthPermission {
-  @PrimaryColumn()
+  constructor(data?: Partial<AuthPermission>) {
+    if (!data)
+      return;
+
+    Object.entries(data).forEach(([key, value]) => {
+      this[key] = value;
+    });
+  }
+
+  @PrimaryColumn('uuid')
   gid: AuthGroupId;
 
   @PrimaryColumn({

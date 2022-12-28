@@ -7,6 +7,15 @@ import {Timestamp} from './Type';
 @Entity()
 @Index('username_idx', ['username'], { unique: true })
 export class AccountPassword {
+  constructor(data?: Partial<AccountPassword>) {
+    if (!data)
+      return;
+
+    Object.entries(data).forEach(([key, value]) => {
+      this[key] = value;
+    });
+  }
+
   @PrimaryColumn()
   id: AccountId;
 
@@ -27,6 +36,15 @@ export class AccountPassword {
 @Index('nickname_idx', ['nickname'], { unique: true })
 @Index('email_idx', ['email'], { unique: true })
 export class Account {
+    constructor(data?: Partial<Account>) {
+    if (!data)
+      return;
+
+    Object.entries(data).forEach(([key, value]) => {
+      this[key] = value;
+    });
+  }
+
   @PrimaryGeneratedColumn()
   id: AccountId;
 

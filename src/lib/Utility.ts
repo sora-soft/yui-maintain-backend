@@ -1,11 +1,26 @@
 import crypto = require('crypto');
-import moment = require('moment');
-import fs = require('fs/promises');
-import path = require('path');
+
+type NonUndefined<T> = T extends undefined ? never : T;
 
 class Random {
   static randomString(length: number) {
     return crypto.randomBytes(Math.floor(length / 2)).toString('hex').slice(0, length);
+  }
+
+  static randomInt(min: number, max: number) {
+    return Math.floor(Math.random() * (max - min)) + min;
+  }
+}
+
+class Util {
+  static isMeaningful<T>(object: T): object is NonUndefined<T> {
+    if (typeof object === 'number')
+      return !isNaN(object);
+    return !this.isUndefined(object);
+  }
+
+  static isUndefined(object: any): object is undefined {
+    return object === undefined;
   }
 }
 
@@ -74,4 +89,4 @@ type NonFunctionPropertyNames<T> = {
 }[keyof T];
 type NonFunctionProperties<T> = Pick<T, NonFunctionPropertyNames<T>>;
 
-export {Random, Hash, UnixTime, NodeTime, NonFunctionProperties, PathUtility}
+export {Random, Hash, UnixTime, NodeTime, NonFunctionProperties, PathUtility, Util}

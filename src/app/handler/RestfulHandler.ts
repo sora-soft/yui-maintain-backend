@@ -1,4 +1,4 @@
-import {DatabaseComponent, EntityTarget, WhereBuilder, WhereCondition} from '@sora-soft/database-component';
+import {DatabaseComponent, EntityTarget, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition} from '@sora-soft/database-component';
 import {Route, Service, Request} from '@sora-soft/framework';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {AppErrorCode, UserErrorCode} from '../ErrorCode';
@@ -21,7 +21,7 @@ export interface IReqFetch<T> {
   db: string;
   offset: number;
   limit: number;
-  relations?: string[];
+  relations?: FindOptionsRelations<T>;
   order?: {
     [k: string]: -1 | 1;
   };
@@ -82,7 +82,7 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async fetch<T>(@AssertType() body: IReqFetch<T>) {
+  async fetch<T extends ObjectLiteral>(@AssertType() body: IReqFetch<T>) {
     const {com, entity, select} = this.getPair<T>(body.db);
 
     const finalSelect = select ? select : [];
@@ -93,7 +93,7 @@ class RestfulHandler extends Route {
       });
     }
 
-    const where = WhereBuilder.build(body.where);
+    const where = WhereBuilder.build(body.where || {});
     const [list, total] = await com.manager.findAndCount(entity, {
       skip: body.offset,
       take: body.limit,
@@ -109,12 +109,12 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async insert<T>(@AssertType() body: IReqInsert<T>) {
+  async insert<T extends ObjectLiteral>(@AssertType() body: IReqInsert<T>) {
     const {com, entity} = this.getPair<T>(body.db);
 
     const data = await this.installData<T>(entity, body.data);
 
-    const result = await com.manager.insert(entity, data).catch(err => {
+    const result = await com.manager.insert(entity, data as any).catch(err => {
       throw new AppError(AppErrorCode.ERR_DATABASE, err.message);
     });
 
@@ -122,7 +122,7 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async insertBatch<T>(@AssertType() body: IReqInsertBatch<T>) {
+  async insertBatch<T extends ObjectLiteral>(@AssertType() body: IReqInsertBatch<T>) {
     const {com, entity} = this.getPair<T>(body.db);
 
     const list: T[] = [];
@@ -139,10 +139,10 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async update<T>(@AssertType() body: IReqUpdate<T>) {
-    const {com, entity} = this.getPair(body.db);
+  async update<T extends ObjectLiteral>(@AssertType() body: IReqUpdate<T>) {
+    const {com, entity} = this.getPair<T>(body.db);
 
-    const data = await this.installData(entity, body.data);
+    const data = await this.installData<T>(entity, body.data);
 
     await com.manager.update(entity, body.id, data);
 
@@ -150,12 +150,12 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async updateBatch<T>(@AssertType() body: IReqUpdateBatch<T>) {
-    const {com, entity} = this.getPair(body.db);
+  async updateBatch<T extends ObjectLiteral>(@AssertType() body: IReqUpdateBatch<T>) {
+    const {com, entity} = this.getPair<T>(body.db);
 
     await com.manager.transaction(async (manager) => {
       for (const d of body.list) {
-        const data = await this.installData(entity, d.data);
+        const data = await this.installData<T>(entity, d.data);
         await manager.update(entity, d.id, data);
       }
     });
@@ -164,14 +164,14 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async deleteBatch<T>(@AssertType() body: IReqDeleteBatch) {
+  async deleteBatch<T extends ObjectLiteral>(@AssertType() body: IReqDeleteBatch) {
     const {com, entity} = this.getPair<T>(body.db);
     await com.manager.delete(entity, body.list);
 
     return {};
   }
 
-  private getPair<T>(name: string) {
+  private getPair<T extends ObjectLiteral>(name: string) {
     const pair = this.dbMap_.get(name);
     if (!pair)
       throw new UserError(UserErrorCode.ERR_DB_NOT_FOUND, `ERR_DB_NOT_FOUND, db=${name}`);

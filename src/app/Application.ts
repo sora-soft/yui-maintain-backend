@@ -8,14 +8,23 @@ import {assertType} from 'typescript-is';
 import {AppError} from './AppError';
 import {AppErrorCode} from './ErrorCode';
 import {WorkerRegister} from './worker/common/WorkerRegister';
+import {FileOutput} from '../lib/FileLogger';
 
 // tslint:disable-next-line
 const pkg = require('../../package.json');
 
+export interface IApplicationLoggerOptions {
+  file: {
+    fileFormat: string;
+  }
+}
+
 export interface IApplicationOptions {
   debug: boolean;
+  logger: IApplicationLoggerOptions;
   discovery: {
     etcdComponentName: string;
+    scope: string;
   };
   node: INodeOptions;
   services?: {
@@ -57,7 +66,12 @@ class Application {
   // 多用于命令行启动
   static async startCommand(options: IApplicationOptions, name: string, args: string[]) {
     await this.start(options);
+    if (!options.workers || !options.workers[name])
+      throw new AppError(AppErrorCode.ERR_CONFIG_NOT_FOUND, `ERR_CONFIG_NOT_FOUND, works[${name}]`);
+
     const worker = Node.workerFactory(name, options.workers[name]);
+    if (!worker)
+      throw new AppError(AppErrorCode.ERR_WORKER_NOT_CREATED, `ERR_WORKER_NOT_CREATED, worker=${name}`);
     await Runtime.installWorker(worker);
     const result = await worker.runCommand(args);
     if (result) {
@@ -75,6 +89,11 @@ class Application {
     if (options.services) {
       for (const [name, serviceConfig] of Object.entries(options.services)) {
         const service = Node.serviceFactory(name, serviceConfig);
+        if (!service) {
+          const err = new AppError(AppErrorCode.ERR_SERVICE_NOT_CREATED, `ERR_SERVICE_NOT_CREATED, service=${name}`);
+          this.appLog.error('application', err);
+          continue;
+        }
         Runtime.installService(service);
       }
     }
@@ -82,12 +101,17 @@ class Application {
     if (options.workers) {
       for (const [name, workerConfig] of Object.entries(options.workers)) {
         const worker = Node.workerFactory(name, workerConfig);
+        if (!worker) {
+          const err = new AppError(AppErrorCode.ERR_WORKER_NOT_CREATED, `ERR_WORKER_NOT_CREATED, worker=${name}`);
+          this.appLog.error('application', err);
+          continue;
+        }
         Runtime.installWorker(worker);
       }
     }
   }
 
-  static async startOnlyAppLog(debug: boolean) {
+  static async startOnlyAppLog(debug: boolean, loggerConfig: IApplicationLoggerOptions) {
     this.appLog_ = new AppLogger();
 
     const logLevels = [LogLevel.error, LogLevel.fatal, LogLevel.info, LogLevel.success, LogLevel.warn];
@@ -97,11 +121,16 @@ class Application {
     const consoleOutput = new ConsoleOutput({
       levels: logLevels
     });
+    const fileOutput = new FileOutput({
+      levels: logLevels,
+      fileFormat: loggerConfig.file.fileFormat,
+    });
 
     this.appLog_.pipe(consoleOutput);
+    this.appLog_.pipe(fileOutput);
   }
 
-  static async startLog(debug: boolean) {
+  static async startLog(debug: boolean, loggerConfig: IApplicationLoggerOptions) {
     this.appLog_ = new AppLogger();
 
     const logLevels = [LogLevel.error, LogLevel.fatal, LogLevel.info, LogLevel.success, LogLevel.warn];
@@ -111,10 +140,14 @@ class Application {
     const consoleOutput = new ConsoleOutput({
       levels: logLevels
     });
+    const fileOutput = new FileOutput({
+      levels: logLevels,
+      fileFormat: loggerConfig.file.fileFormat,
+    });
 
-    Runtime.frameLogger.pipe(consoleOutput);
-    Runtime.rpcLogger.pipe(consoleOutput);
-    this.appLog_.pipe(consoleOutput);
+    Runtime.frameLogger.pipe(consoleOutput).pipe(fileOutput);
+    Runtime.rpcLogger.pipe(consoleOutput).pipe(fileOutput);
+    this.appLog_.pipe(consoleOutput).pipe(fileOutput);
   }
 
   private static async start(options: IApplicationOptions) {
@@ -136,7 +169,7 @@ class Application {
       }
     }
 
-    await Runtime.loadConfig({scope: AppConst.appName});
+    await Runtime.loadConfig({scope: options.discovery.scope});
     const discovery = new ETCDDiscovery({
       etcdComponentName: options.discovery.etcdComponentName,
       ttl: 10,

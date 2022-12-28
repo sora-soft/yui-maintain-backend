@@ -1,7 +1,6 @@
 import {DatabaseComponent, IDatabaseComponentOptions} from '@sora-soft/database-component';
 import {IWorkerOptions, Node, Runtime, Worker} from '@sora-soft/framework';
-import {createConnection} from 'typeorm';
-import {MysqlDriver} from 'typeorm/driver/mysql/MysqlDriver';
+import {DataSource} from 'typeorm';
 import {ComponentName} from '../../lib/Com';
 import {Application} from '../Application';
 import {WorkerName} from './common/WorkerName';
@@ -9,10 +8,11 @@ import camelcase = require('camelcase');
 import fs = require('fs/promises');
 import path = require('path');
 import moment = require('moment');
+import mkdirp = require('mkdirp');
 import {UserError} from '../UserError';
-import {UserErrorCode} from '../ErrorCode';
+import {AppErrorCode, UserErrorCode} from '../ErrorCode';
 import {AssertType, ValidateClass} from 'typescript-is';
-import {MysqlConnectionOptions} from 'typeorm/driver/mysql/MysqlConnectionOptions';
+import {AppError} from '../AppError';
 
 export interface IDatabaseMigrateCommandWorkerOptions extends IWorkerOptions {
   components: ComponentName[];
@@ -45,35 +45,48 @@ class DatabaseMigrateCommandWorker extends Worker {
         const migrationPath = soraConfig.migration;
         for (const name of this.options_.components) {
           const component = Runtime.getComponent(name) as DatabaseComponent;
+          if (!component)
+            throw new AppError(AppErrorCode.ERR_COMPONENT_NOT_FOUND, `ERR_COMPONENT_NOT_FOUND, name=${name}`);
+
           const options = component.options as IDatabaseComponentOptions;
 
           Application.appLog.info('worker.generate-migrate', { component: name });
-          const connection = await createConnection({
+
+          const dataSource = new DataSource({
             ...options.database,
             entities: component.entities,
           });
 
-          const sqlInMemory = await connection.driver.createSchemaBuilder().log();
+          await dataSource.initialize();
+
+          const sqlInMemory = await dataSource.driver.createSchemaBuilder().log();
           const upSqls: string[] = [];
           const downSqls: string[] = [];
 
           // mysql is exceptional here because it uses ` character in to escape names in queries, that's why for mysql
           // we are using simple quoted string instead of template string syntax
-          if (connection.driver instanceof MysqlDriver) {
-            sqlInMemory.upQueries.forEach(query => {
-              upSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
-            });
-            sqlInMemory.downQueries.forEach(query => {
-              downSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
-            });
-          } else {
-            sqlInMemory.upQueries.forEach(query => {
-              upSqls.push('    await queryRunner.query(`' + query.query.replace(new RegExp('`', 'g'), '\\`') + '`);');
-            });
-            sqlInMemory.downQueries.forEach(query => {
-              downSqls.push('    await queryRunner.query(`' + query.query.replace(new RegExp('`', 'g'), '\\`') + '`);');
-            });
-          }
+          // if (dataSource.driver instanceof MysqlDriver) {
+          //   sqlInMemory.upQueries.forEach(query => {
+          //     upSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
+          //   });
+          //   sqlInMemory.downQueries.forEach(query => {
+          //     downSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
+          //   });
+          // } else {
+          //   sqlInMemory.upQueries.forEach(query => {
+          //     upSqls.push('    await queryRunner.query(`' + query.query.replace(new RegExp('`', 'g'), '\\`') + '`);');
+          //   });
+          //   sqlInMemory.downQueries.forEach(query => {
+          //     downSqls.push('    await queryRunner.query(`' + query.query.replace(new RegExp('`', 'g'), '\\`') + '`);');
+          //   });
+          // }
+
+          sqlInMemory.upQueries.forEach(query => {
+            upSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
+          });
+          sqlInMemory.downQueries.forEach(query => {
+            downSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
+          });
 
           if (upSqls.length || downSqls.length) {
             const className = camelcase(name, {pascalCase: true}) + Date.now();
@@ -90,10 +103,11 @@ ${downSqls.reverse().join('\n')}
   }
 };
 `
+            await mkdirp(path.resolve(projectPath, soraConfig.root, migrationPath, name));
             await fs.writeFile(path.resolve(projectPath, soraConfig.root, migrationPath, name, moment().format('YYYYMMDD') + className + '.ts'), file);
           }
 
-          await connection.close();
+          await dataSource.destroy();
         }
 
         break;
@@ -104,13 +118,15 @@ ${downSqls.reverse().join('\n')}
           const options = component.options as IDatabaseComponentOptions;
 
           Application.appLog.info('worker.database-migrate', { event: 'sync-database', component: name });
-          const connection = await createConnection({
+          const dataSource = new DataSource({
             ...options.database,
             entities: component.entities,
             synchronize: true,
           });
 
-          await connection.close();
+          await dataSource.initialize();
+
+          await dataSource.destroy();
         }
         break;
       }
@@ -134,19 +150,20 @@ ${downSqls.reverse().join('\n')}
 
         const files = await fs.readdir(path.join(migrationPath, componentName));
         const migrationList = files.map((file) => path.join(migrationPath, componentName, file)).filter((file) => path.extname(file) === '.js');
-
-        const connection = await createConnection({
+        const dataSource = new DataSource({
           ...options.database,
           entities: component.entities,
           migrationsRun: false,
           migrations: migrationList,
         });
 
-        await connection.runMigrations({
+        await dataSource.initialize();
+
+        await dataSource.runMigrations({
           transaction: 'all',
         });
 
-        await connection.close();
+        await dataSource.destroy();
         break;
       }
 
@@ -169,17 +186,20 @@ ${downSqls.reverse().join('\n')}
         const soraConfig = require(`${projectPath}/sora.json`);
         const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration, componentName);
 
-        const connection = await createConnection({
+        const dataSource = new DataSource({
           ...options.database,
           entities: component.entities,
+          migrationsRun: false,
           migrations: [path.join(migrationPath, '*.js')],
         });
 
-        await connection.undoLastMigration({
+        await dataSource.initialize();
+
+        await dataSource.undoLastMigration({
           transaction: 'all',
         });
 
-        await connection.close();
+        await dataSource.destroy();
         break;
       }
 
@@ -188,13 +208,14 @@ ${downSqls.reverse().join('\n')}
         const component = Runtime.getComponent(componentName) as DatabaseComponent;
         const options = component.options as IDatabaseComponentOptions;
 
-        const connection = await createConnection({
+        const dataSource = new DataSource({
           ...options.database,
           entities: component.entities,
         });
 
-        await connection.dropDatabase();
-        await connection.close();
+        await dataSource.initialize();
+        await dataSource.dropDatabase();
+        await dataSource.destroy();
         break;
       }
       default:

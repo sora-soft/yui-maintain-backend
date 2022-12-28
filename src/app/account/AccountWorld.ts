@@ -1,6 +1,5 @@
 import {Hash, NodeTime, Random, UnixTime} from '../../lib/Utility';
 import {Com} from '../../lib/Com';
-import {TimeConst} from '../Const';
 import {Account, AccountPassword} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
 import {UserErrorCode} from '../ErrorCode';
@@ -24,14 +23,11 @@ class AccountWorld {
   static async loadDefaultGroup() {
     const groups: AuthGroup [] = [];
     for (const data of DefaultGroupList) {
-      const existed = await Com.businessDB.manager.findOne(AuthGroup, data.id);
+      const existed = await Com.businessDB.manager.findOneBy(AuthGroup, {id: data.id});
       if (existed)
         continue;
 
-      const group = new AuthGroup();
-      group.id = data.id;
-      group.name = data.name;
-      group.protected = data.protected;
+      const group = new AuthGroup(data);
       group.createTime = UnixTime.now();
       groups.push(group);
     }
@@ -43,10 +39,7 @@ class AccountWorld {
   static async loadDefaultPermission() {
     const permissions: AuthPermission[] = [];
     for (const data of DefaultPermissionList) {
-      const permission = new AuthPermission();
-      permission.gid = data.gid;
-      permission.name = data.name;
-      permission.permission = data.permission;
+      const permission = new AuthPermission(data);
       permissions.push(permission);
     }
     if (permissions.length) {
@@ -71,8 +64,10 @@ class AccountWorld {
       return true;
 
     const permission = await Com.businessDB.manager.find(AuthPermission, {
-      gid,
-      name,
+      where: {
+        gid,
+        name,
+      },
     });
 
     if (!permission.length)
@@ -136,17 +131,16 @@ class AccountWorld {
       if (nicknameExited)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_NICKNAME, `ERR_DUPLICATE_NICKNAME`);
 
-      const newAccount = new Account();
-      const accountPassword = new AccountPassword();
-
-      accountPassword.username = password.username;
-      accountPassword.salt = Random.randomString(20);
-      accountPassword.password = Hash.md5(password.password + accountPassword.salt);
-
-      newAccount.email = account.email;
-      newAccount.nickname = account.nickname;
-      newAccount.gid = account.gid;
-      newAccount.createTime = UnixTime.now();
+      const newAccount = new Account({
+        ...account,
+        createTime: UnixTime.now(),
+      });
+      const salt = Random.randomString(20);
+      const accountPassword = new AccountPassword({
+        username: password.username,
+        salt,
+        password: Hash.md5(password.password + salt),
+      });
 
       const passErrors = await validate(accountPassword);
       if (passErrors.length) {

@@ -6,6 +6,8 @@ import axios from 'axios';
 import {AppError} from '../app/AppError';
 import {AppErrorCode} from '../app/ErrorCode';
 import path = require('path');
+import os = require('os');
+import process = require('process');
 
 class ConfigLoader<T extends {}> {
   async readFile(filepath: string, type: ConfigFileType.RAW): Promise<Buffer>
@@ -39,9 +41,15 @@ class ConfigLoader<T extends {}> {
         break;
       case 'file':
       default:
-        const target = url.pathToFileURL(targetUrl);
         const extname = path.extname(targetUrl);
-        const filePath = path.resolve(process.cwd(), target.pathname);
+        let filePath: string;
+        if (process.platform === 'win32') {
+          filePath = targetUrl;
+        } else {
+          const target = url.pathToFileURL(targetUrl);
+          filePath = path.resolve(process.cwd(), target.pathname);
+        }
+
         switch (extname) {
           case '.yaml':
           case '.yml':

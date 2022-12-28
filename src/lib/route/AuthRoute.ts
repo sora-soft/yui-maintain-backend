@@ -13,10 +13,7 @@ class AuthRoute<T extends Service = Service> extends Route<T> {
         const checkAuthName = [this.service.name, authName ? authName : method].join('/');
 
         const gid: AuthGroupId = request.getHeader(AuthRPCHeader.RPC_AUTH_GID);
-        // from other server
-        if (!gid) {
-
-        } else {
+        if (gid) {
           if (gid === GuestGroupId)
             throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
 

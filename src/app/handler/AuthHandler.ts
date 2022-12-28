@@ -3,8 +3,8 @@ import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
 import {AccountRoute} from '../../lib/route/AccountRoute';
 import {AuthRoute} from '../../lib/route/AuthRoute';
-import {Random, UnixTime} from '../../lib/Utility';
-import {AccountId, AuthGroupId, PermissionResult, RootGroupId} from '../account/AccountType';
+import {Random} from '../../lib/Utility';
+import {AccountId, AuthGroupId, PermissionResult} from '../account/AccountType';
 import {AccountWorld} from '../account/AccountWorld';
 import {Account} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
@@ -71,7 +71,7 @@ class AuthHandler extends AuthRoute {
   async updatePermission(@AssertType() body: IUpdatePermissionReq) {
     const list: AuthPermission[] = [];
 
-    const group = await Com.businessDB.manager.findOne(AuthGroup, body.gid);
+    const group = await Com.businessDB.manager.findOneBy(AuthGroup, {id: body.gid});
 
     if (!group)
       throw new UserError(UserErrorCode.ERR_GROUP_NOT_FOUND, `ERR_GROUP_NOT_FOUND`);
@@ -92,7 +92,7 @@ class AuthHandler extends AuthRoute {
   @Route.method
   @AuthRoute.auth()
   async createAccount(@AssertType() body: IReqCreateAccount) {
-    const group = await Com.businessDB.manager.findOne(AuthGroup, body.gid);
+    const group = await Com.businessDB.manager.findOneBy(AuthGroup, {id: body.gid});
 
     if (!group)
       throw new UserError(UserErrorCode.ERR_GROUP_NOT_FOUND, `ERR_GROUP_NOT_FOUND`);
@@ -117,7 +117,7 @@ class AuthHandler extends AuthRoute {
   @Route.method
   @AuthRoute.auth()
   async resetPassword(@AssertType() body: IReqResetPassword) {
-    const account = await Com.businessDB.manager.findOne(Account, body.id);
+    const account = await Com.businessDB.manager.findOneBy(Account, {id: body.id});
     if (!account)
       throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
 
@@ -128,7 +128,7 @@ class AuthHandler extends AuthRoute {
 
   @Route.method
   async requestForgetPassword(@AssertType() body: IReqRequestForgetPassword) {
-    const account = await Com.businessDB.manager.findOne(Account, {
+    const account = await Com.businessDB.manager.findOneBy(Account, {
       email: body.email,
     });
 
@@ -147,7 +147,7 @@ class AuthHandler extends AuthRoute {
     if (!info || info.code !== body.code)
       throw new UserError(UserErrorCode.ERR_WRONG_EMAIL_CODE, `ERR_WRONG_EMAIL_CODE`);
 
-    const account = await Com.businessDB.manager.findOne(Account, info.accountId);
+    const account = await Com.businessDB.manager.findOneBy(Account, {id: info.accountId});
     if (!account)
       throw new UserError(UserErrorCode.ERR_WRONG_EMAIL_CODE, `ERR_WRONG_EMAIL_CODE`);
 

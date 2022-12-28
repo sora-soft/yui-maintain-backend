@@ -1,6 +1,6 @@
 import {AuthGroup, AuthPermission} from '../database/Auth';
 
-export type AccountId = string;
+export type AccountId = number;
 
 export interface IAccountSessionData {
   accountId: AccountId;
@@ -24,10 +24,11 @@ export const UserGroupId: AuthGroupId = 'ebba2b40-25b3-4178-8c8a-6a6eca2def99';
 export const RootGroupId: AuthGroupId = 'cbe3f8c8-44bc-44ef-9a61-3bc4f6692a12';
 
 // 默认用户组别
-export const DefaultGroupList: Partial<AuthGroup>[] = [
+export const DefaultGroupList: Pick<AuthGroup, 'id' | 'name' | 'protected'>[] = [
   {
     id: UserGroupId,
     name: 'User',
+    protected: false,
   },
   {
     id: RootGroupId,
@@ -37,7 +38,7 @@ export const DefaultGroupList: Partial<AuthGroup>[] = [
 ];
 
 // 默认游客权限
-export const DefaultPermissionList: Partial<AuthPermission>[] = [
+export const DefaultPermissionList: Pick<AuthPermission, 'gid' | 'name' | 'permission'>[] = [
   {
     gid: RootGroupId,
     name: 'root',

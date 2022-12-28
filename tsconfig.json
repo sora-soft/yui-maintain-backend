@@ -7,6 +7,7 @@
     "outDir": "./dist",
     "sourceMap": true,
     "alwaysStrict": true,
+    "strictNullChecks": true,
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

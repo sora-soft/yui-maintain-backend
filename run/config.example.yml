@@ -1,6 +1,11 @@
 debug: true
 discovery:
   etcdComponentName: 'etcd'
+  scope: '<scope>'
+
+logger:
+  file:
+    fileFormat: '[./logs/server-]YYYY-MM-DD[.log]'
 
 node:
   api:

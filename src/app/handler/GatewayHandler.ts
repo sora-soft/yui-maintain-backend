@@ -64,7 +64,7 @@ class GatewayHandler extends ForwardRoute {
 
     const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
 
-    const account = await Com.businessDB.manager.findOne(Account, userPass.id);
+    const account = await Com.businessDB.manager.findOneBy(Account, {id: userPass.id});
 
     if (!account)
       throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
@@ -105,7 +105,9 @@ class GatewayHandler extends ForwardRoute {
       where: {
         id: cache.accountId
       },
-      relations: ['userPass']
+      relations: {
+        userPass: true
+      }
     });
 
     if (!account)
