@@ -1,7 +1,6 @@
 import {Request, Response, Route, RPCHandler, Service} from '@sora-soft/framework';
-import {FindOptionsRelations} from 'typeorm';
-import {AccountId, AuthGroupId} from '../../app/account/AccountType';
-import {AccountWorld} from '../../app/account/AccountWorld';
+import {FindOptionsRelations} from '@sora-soft/database-component';
+import {AccountId} from '../../app/account/AccountType';
 import {Account} from '../../app/database/Account';
 import {UserErrorCode} from '../../app/ErrorCode';
 import {UserError} from '../../app/UserError';

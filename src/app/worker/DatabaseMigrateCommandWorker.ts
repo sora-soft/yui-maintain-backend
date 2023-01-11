@@ -1,6 +1,5 @@
-import {DatabaseComponent, IDatabaseComponentOptions} from '@sora-soft/database-component';
+import {DatabaseComponent, IDatabaseComponentOptions, DataSource} from '@sora-soft/database-component';
 import {IWorkerOptions, Node, Runtime, Worker} from '@sora-soft/framework';
-import {DataSource} from 'typeorm';
 import {ComponentName} from '../../lib/Com';
 import {Application} from '../Application';
 import {WorkerName} from './common/WorkerName';
@@ -91,7 +90,7 @@ class DatabaseMigrateCommandWorker extends Worker {
           if (upSqls.length || downSqls.length) {
             const className = camelcase(name, {pascalCase: true}) + Date.now();
             const file =
-`import {MigrationInterface, QueryRunner} from 'typeorm';
+`import {MigrationInterface, QueryRunner} from '@sora-soft/database-component';
 
 export class ${className} implements MigrationInterface {
   async up(queryRunner: QueryRunner): Promise<void> {

@@ -1,4 +1,4 @@
-import {Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryColumn, PrimaryGeneratedColumn} from 'typeorm';
+import {Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component';
 import {IsEmail} from 'class-validator';
 import {AccountId, AuthGroupId} from '../account/AccountType';
 import {AuthGroup} from './Auth';

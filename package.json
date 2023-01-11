@@ -26,9 +26,6 @@
     "url": "https://github.com/sora-soft/example-project/issues"
   },
   "homepage": "https://github.com/sora-soft/example-project#readme",
-  "resolutions": {
-    "typeorm": "0.3.11"
-  },
   "dependencies": {
     "@alicloud/pop-core": "^1.7.10",
     "@sora-soft/database-component": "^1.2.0",
@@ -36,7 +33,7 @@
     "@sora-soft/etcd-discovery": "^1.1.0",
     "@sora-soft/framework": "^1.5.0",
     "@sora-soft/http-support": "^1.1.1",
-    "@sora-soft/redis-component": "^1.0.7",
+    "@sora-soft/redis-component": "^1.1.1",
     "axios": "^0.21.1",
     "camelcase": "^6.2.0",
     "class-validator": "^0.13.1",
@@ -48,7 +45,6 @@
     "mysql2": "^2.2.5",
     "reflect-metadata": "^0.1.13",
     "source-map-support": "^0.5.19",
-    "typeorm": "^0.3.11",
     "typescript-is": "^0.18.2"
   },
   "devDependencies": {
@@ -67,9 +63,9 @@
     "mocha": "^8.3.2",
     "rimraf": "^3.0.2",
     "ts-mocha": "^8.0.0",
-    "ts-node": "^9.1.1",
+    "ts-node": "^10.9.1",
     "tslint": "^6.1.3",
-    "ttypescript": "^1.5.12",
+    "ttypescript": "^1.5.15",
     "typescript": "^4.2.3"
   }
 }

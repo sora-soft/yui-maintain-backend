@@ -1,4 +1,4 @@
-import {DatabaseComponent, EntityTarget, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition} from '@sora-soft/database-component';
+import {DatabaseComponent, EntityTarget, FindManyOptions, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition} from '@sora-soft/database-component';
 import {Route, Service, Request} from '@sora-soft/framework';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {AppErrorCode, UserErrorCode} from '../ErrorCode';
@@ -7,6 +7,7 @@ import {validate} from 'class-validator';
 import {AccountWorld} from '../account/AccountWorld';
 import {AuthGroupId} from '../account/AccountType';
 import {AppError} from '../AppError';
+import {Util} from '../../lib/Utility';
 
 export interface IRestfulHandlerCom<T = unknown> {
   name: string;
@@ -19,9 +20,11 @@ export type RestfulHandlerComList = IRestfulHandlerCom[];
 
 export interface IReqFetch<T> {
   db: string;
-  offset: number;
-  limit: number;
-  relations?: FindOptionsRelations<T>;
+  offset?: number;
+  limit?: number;
+  relations?: {
+    [k in keyof T]: T extends Array<any> ? boolean : T extends string ? never : T extends number ? never : T extends boolean ? never : T extends Function ? never : T extends Buffer ? never : T extends Date ? never : T extends object ? boolean : boolean;
+  };
   order?: {
     [k: string]: -1 | 1;
   };
@@ -93,15 +96,25 @@ class RestfulHandler extends Route {
       });
     }
 
+    const query: FindManyOptions<T> = {};
+    if (Util.isMeaningful(body.offset)) {
+      query.skip = body.offset;
+    }
+
+    if (Util.isMeaningful(body.limit)) {
+      query.take = body.limit;
+    }
+
+    if (Util.isMeaningful(body.relations)) {
+      query.relations = body.relations as FindOptionsRelations<T>;
+    }
+
+    if (Util.isMeaningful(body.where)) {
+      query.where = WhereBuilder.build(body.where);
+    }
+
     const where = WhereBuilder.build(body.where || {});
-    const [list, total] = await com.manager.findAndCount(entity, {
-      skip: body.offset,
-      take: body.limit,
-      relations: body.relations,
-      order: body.order as any,
-      select: finalSelect.length ? finalSelect as (keyof T)[] : undefined,
-      where,
-    });
+    const [list, total] = await com.manager.findAndCount(entity, query);
     return {
       list,
       total,
