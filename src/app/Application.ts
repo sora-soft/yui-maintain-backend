@@ -9,6 +9,7 @@ import {AppError} from './AppError';
 import {AppErrorCode} from './ErrorCode';
 import {WorkerRegister} from './worker/common/WorkerRegister';
 import {FileOutput} from '../lib/FileLogger';
+import {Com} from '../lib/Com';
 
 // tslint:disable-next-line
 const pkg = require('../../package.json');
@@ -158,7 +159,7 @@ class Application {
       throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, `ERR_LOAD_CONFIG, message=${err.message}`);
     }
 
-    // 所有需要使用 Component 的组件都需要在 Component 初始化后才能调用
+    Com.register();
     if (options.components) {
       for (const [name, componentConfig] of Object.entries(options.components)) {
         const component = Runtime.getComponent(name);

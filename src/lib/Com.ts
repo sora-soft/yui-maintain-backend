@@ -4,6 +4,7 @@ import {Account, AccountPassword} from '../app/database/Account';
 import {EtcdComponent} from '@sora-soft/etcd-component';
 import {AuthGroup, AuthPermission} from '../app/database/Auth';
 import {AliCloudComponent} from '../com/alicloud/AliCloudComponent';
+import {Runtime} from '@sora-soft/framework';
 
 export enum ComponentName {
   BusinessRedis = 'business-redis',
@@ -13,15 +14,22 @@ export enum ComponentName {
 }
 
 class Com {
-  static businessRedis = new RedisComponent(ComponentName.BusinessRedis);
+  static register() {
+    Runtime.registerComponent(ComponentName.BusinessRedis, this.businessRedis);
+    Runtime.registerComponent(ComponentName.BusinessDB, this.businessDB);
+    Runtime.registerComponent(ComponentName.Etcd, this.etcd);
+    Runtime.registerComponent(ComponentName.AliCloud, this.aliCloud);
+  }
 
-  static businessDB = new DatabaseComponent(ComponentName.BusinessDB, [
+  static businessRedis = new RedisComponent();
+
+  static businessDB = new DatabaseComponent([
     Account, AccountPassword, AuthGroup, AuthPermission,
   ]);
 
-  static etcd = new EtcdComponent(ComponentName.Etcd);
+  static etcd = new EtcdComponent();
 
-  static aliCloud = new AliCloudComponent(ComponentName.AliCloud);
+  static aliCloud = new AliCloudComponent();
 
 }
 
