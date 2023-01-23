@@ -31,6 +31,10 @@ class Hash {
 }
 
 class UnixTime {
+  static fromNodeTime(ms: number) {
+    return Math.floor(ms / 1000);
+  }
+
   static fromDate(date: Date) {
     return Math.floor(date.getTime() / 1000)
   }
