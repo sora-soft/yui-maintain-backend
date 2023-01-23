@@ -8,7 +8,7 @@ import {AccountWorld} from '../account/AccountWorld';
 import {ForwardRoute} from '../../lib/route/ForwardRoute';
 import {UserGroupId} from '../account/AccountType';
 import {Application} from '../Application';
-import {Hash, NodeTime, Random} from '../../lib/Utility';
+import {Hash, NodeTime} from '../../lib/Utility';
 import {AuthPermission} from '../database/Auth';
 
 export interface IRegisterReq {
@@ -69,10 +69,11 @@ class GatewayHandler extends ForwardRoute {
     if (!account)
       throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
 
+    const ttl = body.remember ? NodeTime.day(5) : NodeTime.hour(8);
     await AccountWorld.setAccountSession(session, {
       accountId: userPass.id,
       gid: account.gid,
-    }, body.remember ? NodeTime.day(5) : NodeTime.hour(8));
+    }, ttl);
 
     const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
@@ -85,6 +86,7 @@ class GatewayHandler extends ForwardRoute {
 
     return {
       account: {
+        id: account.id,
         username: userPass.username,
         email: account.email,
         nickname: account.nickname,
