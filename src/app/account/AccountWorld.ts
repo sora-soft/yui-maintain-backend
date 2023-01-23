@@ -106,29 +106,29 @@ class AccountWorld {
 
   static async createAccount(account: Pick<Account, 'email' | 'nickname' | 'gid'>, password: Pick<AccountPassword, 'username' | 'password'>) {
     return AccountLock.registerLock(AccountType.Admin, password.username, account.email, account.nickname, async () => {
-      const emailExited = await Com.businessDB.manager.count(Account, {
+      const emailExisted = await Com.businessDB.manager.count(Account, {
         where: [{
           email: account.email,
         }],
       });
-      const usernameExited = await Com.businessDB.manager.count(AccountPassword, {
+      const usernameExisted = await Com.businessDB.manager.count(AccountPassword, {
         where: {
           username: password.username,
         }
       });
-      const nicknameExited = await Com.businessDB.manager.count(Account, {
+      const nicknameExisted = await Com.businessDB.manager.count(Account, {
         where: {
           nickname: account.nickname
         }
       });
 
-      if (usernameExited)
+      if (usernameExisted)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, `ERR_DUPLICATE_USERNAME`);
 
-      if (emailExited)
+      if (emailExisted)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, `ERR_DUPLICATE_EMAIL`);
 
-      if (nicknameExited)
+      if (nicknameExisted)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_NICKNAME, `ERR_DUPLICATE_NICKNAME`);
 
       const newAccount = new Account({
