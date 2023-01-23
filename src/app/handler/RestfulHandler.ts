@@ -23,7 +23,7 @@ export interface IReqFetch<T> {
   offset?: number;
   limit?: number;
   relations?: {
-    [k in keyof T]: T extends Array<any> ? boolean : T extends string ? never : T extends number ? never : T extends boolean ? never : T extends Function ? never : T extends Buffer ? never : T extends Date ? never : T extends object ? boolean : boolean;
+    [k in keyof T]: T extends Array<any> ? boolean : T extends string ? never : T extends number ? never : T extends boolean ? never : T extends Function ? never : T extends object ? boolean : boolean;
   };
   order?: {
     [k: string]: -1 | 1;
