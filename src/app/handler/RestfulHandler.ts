@@ -88,6 +88,7 @@ class RestfulHandler extends Route {
   async fetch<T extends ObjectLiteral>(@AssertType() body: IReqFetch<T>) {
     const {com, entity, select} = this.getPair<T>(body.db);
 
+    const query: FindManyOptions<T> = {};
     const finalSelect = select ? select : [];
     if (body.select && select) {
       body.select.forEach((key) => {
@@ -95,8 +96,8 @@ class RestfulHandler extends Route {
           finalSelect.push(key);
       });
     }
+    query.select = finalSelect;
 
-    const query: FindManyOptions<T> = {};
     if (Util.isMeaningful(body.offset)) {
       query.skip = body.offset;
     }
@@ -113,7 +114,6 @@ class RestfulHandler extends Route {
       query.where = WhereBuilder.build(body.where);
     }
 
-    const where = WhereBuilder.build(body.where || {});
     const [list, total] = await com.manager.findAndCount(entity, query);
     return {
       list,
