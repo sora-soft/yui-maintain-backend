@@ -118,13 +118,6 @@ class ForwardRoute<T extends Service = Service> extends Route<T> {
             Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method, notify: notify.payload, duration: Date.now() - startTime });
             return null;
           } else {
-            // 权限验证
-            const allowed = await AccountWorld.hasAuth(gid, `${service}.${method}`);
-            if (!allowed) {
-              Runtime.rpcLogger.debug('forward-route', { event: 'forward-handler', error: UserErrorCode.ERR_AUTH_DENY, message: `ERR_AUTH_DENY, name=${service}.${method}` });
-              return null;
-            }
-
             // 转发至其他服务
             const provider = route.getProvider(service as ServiceName);
 
