@@ -24,10 +24,10 @@ export interface IReqFetch<T> {
   offset?: number;
   limit?: number;
   relations?: {
-    [k in keyof T]: EntityValueType<T, boolean>;
+    [k in keyof T]?: EntityValueType<T, boolean>;
   };
   order?: {
-    [k in keyof T]: EntityValueType<T, FindOptionsOrderValue>;
+    [k in keyof T]?: EntityValueType<T, FindOptionsOrderValue>;
   };
   select?: Array<keyof T>;
   where?: WhereCondition<T>;
