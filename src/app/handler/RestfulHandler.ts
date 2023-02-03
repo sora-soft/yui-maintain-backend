@@ -1,4 +1,4 @@
-import {DatabaseComponent, EntityTarget, FindManyOptions, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition} from '@sora-soft/database-component';
+import {DatabaseComponent, EntityTarget, FindManyOptions, FindOptionsOrder, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition, FindOptionsOrderValue} from '@sora-soft/database-component';
 import {Route, Service, Request} from '@sora-soft/framework';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {AppErrorCode, UserErrorCode} from '../ErrorCode';
@@ -9,6 +9,7 @@ import {AuthGroupId} from '../account/AccountType';
 import {AppError} from '../AppError';
 import {Util} from '../../lib/Utility';
 
+type EntityValueType<T, V> = T extends Array<any> ? V : T extends string ? never : T extends number ? never : T extends V ? never : T extends Function ? never : T extends object ? V : V;
 export interface IRestfulHandlerCom<T = unknown> {
   name: string;
   com: DatabaseComponent;
@@ -23,12 +24,12 @@ export interface IReqFetch<T> {
   offset?: number;
   limit?: number;
   relations?: {
-    [k in keyof T]: T extends Array<any> ? boolean : T extends string ? never : T extends number ? never : T extends boolean ? never : T extends Function ? never : T extends object ? boolean : boolean;
+    [k in keyof T]: EntityValueType<T, boolean>;
   };
   order?: {
-    [k: string]: -1 | 1;
+    [k in keyof T]: EntityValueType<T, FindOptionsOrderValue>;
   };
-  select?: string[];
+  select?: Array<keyof T>;
   where?: WhereCondition<T>;
 }
 
@@ -92,8 +93,8 @@ class RestfulHandler extends Route {
     const finalSelect = select ? select : [];
     if (body.select && select) {
       body.select.forEach((key) => {
-        if (select.includes(key))
-          finalSelect.push(key);
+        if (select.includes(key as string))
+          finalSelect.push(key as string);
       });
     }
     query.select = finalSelect;
@@ -112,6 +113,10 @@ class RestfulHandler extends Route {
 
     if (Util.isMeaningful(body.where)) {
       query.where = WhereBuilder.build(body.where);
+    }
+
+    if (Util.isMeaningful(body.order)) {
+      query.order = body.order as FindOptionsOrder<T>;
     }
 
     const [list, total] = await com.manager.findAndCount(entity, query);
