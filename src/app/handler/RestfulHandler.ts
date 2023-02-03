@@ -90,14 +90,26 @@ class RestfulHandler extends Route {
     const {com, entity, select} = this.getPair<T>(body.db);
 
     const query: FindManyOptions<T> = {};
-    const finalSelect = select ? select : [];
-    if (body.select && select) {
-      body.select.forEach((key) => {
-        if (select.includes(key as string))
-          finalSelect.push(key as string);
+    const finalSelect: string[] = [];
+    if (body.select) {
+      body.select.forEach((key: string) => {
+        if (select) {
+          if (select.includes(key))
+            finalSelect.push(key);
+        } else {
+          finalSelect.push(key);
+        }
       });
+    } else {
+      if (select) {
+        for (const key of select) {
+          finalSelect.push(key);
+        }
+      }
     }
-    query.select = finalSelect;
+    if (finalSelect.length) {
+      query.select = finalSelect;
+    }
 
     if (Util.isMeaningful(body.offset)) {
       query.skip = body.offset;
