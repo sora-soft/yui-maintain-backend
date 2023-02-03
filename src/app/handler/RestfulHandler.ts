@@ -29,7 +29,7 @@ export interface IReqFetch<T> {
   order?: {
     [k in keyof T]?: EntityValueType<T, FindOptionsOrderValue>;
   };
-  select?: Array<keyof T>;
+  select?: string[];
   where?: WhereCondition<T>;
 }
 
