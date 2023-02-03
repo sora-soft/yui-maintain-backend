@@ -93,10 +93,7 @@ class RestfulHandler extends Route {
     const finalSelect: string[] = [];
     if (body.select) {
       body.select.forEach((key: string) => {
-        if (select) {
-          if (select.includes(key))
-            finalSelect.push(key);
-        } else {
+        if (!select || select.includes(key)) {
           finalSelect.push(key);
         }
       });
