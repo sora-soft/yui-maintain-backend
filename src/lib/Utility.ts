@@ -44,11 +44,15 @@ class UnixTime {
   }
 
   static day(days: number) {
-    return 60 * 60 * 24 * days;
+    return days * this.hour(24);
+  }
+
+  static hour(hours: number) {
+    return hours * this.minute(60);
   }
 
   static minute(minutes: number) {
-    return 60 * minutes;
+    return minutes * this.second(60);
   }
 
   static second(seconds: number) {
@@ -57,6 +61,14 @@ class UnixTime {
 }
 
 class NodeTime {
+  static fromUnixTime(second: number) {
+    return second * 1000;
+  }
+
+  static fromDate(date: Date) {
+    return date.getTime();
+  }
+
   static now() {
     return new Date().getTime();
   }
@@ -65,12 +77,12 @@ class NodeTime {
     return days * this.hour(24)// 60 * 60 * 24 * days * 1000;
   }
 
-  static minute(minutes: number) {
-    return 60 * minutes * this.second(1);
-  }
-
   static hour(hours: number) {
     return hours * this.minute(60);
+  }
+
+  static minute(minutes: number) {
+    return minutes * this.second(60);
   }
 
   static second(seconds: number) {
