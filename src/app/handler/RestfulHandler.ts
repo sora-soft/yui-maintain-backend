@@ -77,8 +77,8 @@ class RestfulHandler extends Route {
     return AccountWorld.hasAuth(gid, [service, methodConvertMap[method], db].join('.'));
   }
 
-  constructor(service: Service, list: RestfulHandlerComList) {
-    super(service);
+  constructor(list: RestfulHandlerComList) {
+    super();
     this.dbMap_ = new Map();
     for(const data of list) {
       this.dbMap_.set(data.name, data);

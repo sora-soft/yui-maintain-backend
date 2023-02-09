@@ -1,4 +1,4 @@
-import {ErrorLevel, ExError, IRawNetPacket, Logger, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, RPCResponseError, Runtime, Service} from '@sora-soft/framework';
+import {ErrorLevel, ExError, IRawNetPacket, IRawResPacket, ListenerCallback, Logger, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, RPCResponseError, Runtime, Service} from '@sora-soft/framework';
 import {GuestGroupId} from '../../app/account/AccountType';
 import {AccountWorld} from '../../app/account/AccountWorld';
 import {Application} from '../../app/Application';
@@ -9,32 +9,34 @@ import {NodeTime} from '../Utility';
 
 type RouteMap = { [key in ServiceName]?: Provider<Route>};
 
-class ForwardRoute<T extends Service = Service> extends Route<T> {
+class ForwardRoute<T extends Service = Service> extends Route {
   constructor(service: T, route: RouteMap) {
-    super(service);
-    this.providerMap_ = new Map();
+    super();
+    this.service = service;
+    this.routeProviderMap_ = new Map();
     for (const [name, value] of Object.entries(route)) {
       if (value) {
-        this.providerMap_.set(name, value);
+        this.routeProviderMap_.set(name, value);
       }
     }
   }
 
-  private providerMap_: Map<string, Provider<Route>>;
+  private routeProviderMap_: Map<string, Provider<Route>>;
+  private service: T;
 
   private getProvider(service: ServiceName) {
-    if (!this.providerMap_.has(service as ServiceName))
+    if (!this.routeProviderMap_.has(service as ServiceName))
       throw new RPCError(RPCErrorCode.ERR_RPC_SERVICE_NOT_FOUND, `ERR_RPC_SERVICE_NOT_FOUND, service=${service}`);
 
-    const provider: Provider<Route> | undefined = this.providerMap_.get(service);
+    const provider: Provider<Route> | undefined = this.routeProviderMap_.get(service);
     if (!provider)
       throw new RPCError(RPCErrorCode.ERR_RPC_PROVIDER_NOT_AVAILABLE, `ERR_RPC_PROVIDER_NOT_AVAILABLE, service=${service}`);
 
     return provider;
   }
 
-  static callback(route: ForwardRoute) {
-    return (async (packet: IRawNetPacket, session: string) => {
+  static callback(route: ForwardRoute): ListenerCallback {
+    return async (packet, session, connector): Promise<IRawResPacket | null> => {
       const account = await AccountWorld.getAccountSession(session);
       const gid = account ? account.gid : GuestGroupId;
 
@@ -58,8 +60,10 @@ class ForwardRoute<T extends Service = Service> extends Route<T> {
 
           if (!shouldForward) {
             // 调用 route 本身方法
-            const result = await route.callMethod(request.method, request, response).catch((err: ExError) => {
-              Runtime.frameLogger.error('forward-route', err, { event: 'rpc-handler', error: Logger.errorMessage(err), service: route.service.name, method: request.method, request: request.payload });
+            const result = await route.callMethod(request.method, request, response, connector).catch((err: ExError) => {
+              if (err.level !== ErrorLevel.EXPECTED) {
+                Runtime.rpcLogger.error('forward-route', err, { event: 'rpc-handler', error: Logger.errorMessage(err), service: route.service.name, method: request.method, request: request.payload });
+              }
               return {
                 error: {
                   code: err.code || RPCErrorCode.ERR_RPC_UNKNOWN,
@@ -105,14 +109,14 @@ class ForwardRoute<T extends Service = Service> extends Route<T> {
           Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method, notify: notify.payload });
 
           if (!packet.path)
-            return;
+            return null;
 
           const [service, method] = packet.path?.split('/').slice(-2) as [ServiceName, string];
           const shouldForward = service !== route.service.name;
 
           if (!shouldForward) {
             // 调用 route 本身方法
-            await route.callNotify(notify.method, notify).catch(err => {
+            await route.callNotify(notify.method, notify, connector).catch(err => {
               Runtime.frameLogger.error('forward-route', err, { event: 'notify-handler', error: Logger.errorMessage(err), service: route.service.name, method: notify.method, request: notify.payload });
             });
             Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method, notify: notify.payload, duration: Date.now() - startTime });
@@ -136,8 +140,10 @@ class ForwardRoute<T extends Service = Service> extends Route<T> {
         case OPCode.RESPONSE:
           // 不应该在路由处收到 rpc 回包消息
           return null;
+        default:
+          return null;
       }
-    }) as any;
+    };
   }
 }
 

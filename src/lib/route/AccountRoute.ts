@@ -12,31 +12,12 @@ interface IAccountOptions {
   relations?: FindOptionsRelations<keyof Pick<NonFunctionProperties<Account>, 'userPass'>>;
 }
 
-class AccountRoute<T extends Service = Service> extends Route<T> {
-  static id() {
-    return (target: AccountRoute, method: string, descriptor: PropertyDescriptor) => {
-      const origin: RPCHandler = descriptor.value;
-      descriptor.value = async function (body: any, request: Request, response: Response) {
-        if (request.getHeader(AuthRPCHeader.RPC_INNER)) {
-          return origin.apply(this, [body, null, request, response]);
-        }
-
-        const accountId: AccountId = request.getHeader(AuthRPCHeader.RPC_ACCOUNT_ID);
-        if (!accountId)
-          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
-
-        return origin.apply(this, [body, accountId, request, response]);
-      }
-      return descriptor;
-    };
-  }
-
+class AccountRoute extends Route {
   static account(options?: IAccountOptions) {
     return (target: AccountRoute, method: string, descriptor: PropertyDescriptor) => {
-      const origin: RPCHandler = descriptor.value;
-      descriptor.value = async function (body: any, request: Request, response: Response) {
+      target.registerProvider(method, Account, async(body: any, request, response, connector) => {
         if (request.getHeader(AuthRPCHeader.RPC_INNER)) {
-          return origin.apply(this, [body, null, request, response]);
+          return null;
         }
 
         const accountId: AccountId = request.getHeader(AuthRPCHeader.RPC_ACCOUNT_ID);
@@ -52,14 +33,13 @@ class AccountRoute<T extends Service = Service> extends Route<T> {
           relations,
         });
 
-        return origin.apply(this, [body, account, request, response]);
-      }
-      return descriptor;
+        return account;
+      });
     };
   }
 
-  constructor(service: T) {
-    super(service);
+  constructor() {
+    super();
   }
 }
 

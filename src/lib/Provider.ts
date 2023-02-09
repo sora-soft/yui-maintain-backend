@@ -1,5 +1,5 @@
-import {Provider, TCPSender} from '@sora-soft/framework';
-import {WebSocketSender} from '@sora-soft/http-support';
+import {Provider, TCPConnector} from '@sora-soft/framework';
+import {WebSocketConnector} from '@sora-soft/http-support';
 import {AuthHandler} from '../app/handler/AuthHandler';
 import {GatewayHandler} from '../app/handler/GatewayHandler';
 import {RestfulHandler} from '../app/handler/RestfulHandler';
@@ -7,8 +7,8 @@ import {ServiceName} from '../app/service/common/ServiceName';
 
 class Pvd {
   static registerSenders() {
-    TCPSender.register();
-    WebSocketSender.register();
+    TCPConnector.register();
+    WebSocketConnector.register();
   }
 
   static httpGateway = new Provider<GatewayHandler>(ServiceName.HttpGateway);

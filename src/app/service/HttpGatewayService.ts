@@ -44,7 +44,7 @@ class HttpGatewayService extends Service {
       [ServiceName.Auth]: Pvd.auth,
     });
     const koa = new Koa();
-    const listener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.executor, this.gatewayOptions_.httpListener.labels);
+    const listener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.gatewayOptions_.httpListener.labels);
 
     if (this.gatewayOptions_.traefik) {
       const nameInTraefik = `${this.gatewayOptions_.traefik.name || Application.appName.replace('@', '-')}:${this.name}`;

@@ -55,7 +55,6 @@ export interface IReqFetchAccessKey {
 @ValidateClass()
 class AuthHandler extends AuthRoute {
   @Route.method
-  @AccountRoute.id()
   async fetchAccountList(body: void) {
     const list = await Com.businessDB.manager.find(Account, {
       select: ['id', 'nickname'],

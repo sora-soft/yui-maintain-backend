@@ -29,7 +29,7 @@ class AuthService extends Service {
 
     const route = new AuthHandler(this);
 
-    const listener = new TCPListener(this.serviceOptions_.tcpListener, Route.callback(route), this.executor);
+    const listener = new TCPListener(this.serviceOptions_.tcpListener, Route.callback(route));
     await this.installListener(listener);
   }
 

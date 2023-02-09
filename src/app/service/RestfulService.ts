@@ -26,7 +26,7 @@ class RestfulService extends Service {
   protected async startup() {
     await this.connectComponent(Com.businessDB);
 
-    const route = new RestfulHandler(this, [
+    const route = new RestfulHandler([
       {
         name: 'account',
         com: Com.businessDB,
@@ -44,7 +44,7 @@ class RestfulService extends Service {
         entity: AuthPermission,
       }
     ]);
-    const listener = new TCPListener(this.serviceConfig_.tcpListener, Route.callback(route), this.executor);
+    const listener = new TCPListener(this.serviceConfig_.tcpListener, Route.callback(route));
 
     await this.installListener(listener);
   }

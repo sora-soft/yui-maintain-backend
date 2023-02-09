@@ -62,7 +62,7 @@ class GatewayHandler extends ForwardRoute {
     if (userPass.password !== password)
       throw new UserError(UserErrorCode.ERR_WRONG_PASSWORD, `ERR_WRONG_PASSWORD`);
 
-    const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
+    const session = request.getHeader<string>(RPCHeader.RPC_SESSION_HEADER);
 
     const account = await Com.businessDB.manager.findOneBy(Account, {id: userPass.id});
 
@@ -97,7 +97,7 @@ class GatewayHandler extends ForwardRoute {
 
   @Route.method
   async info(body: void, request: Request<void>) {
-    const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
+    const session = request.getHeader<string>(RPCHeader.RPC_SESSION_HEADER);
 
     const cache = await AccountWorld.getAccountSession(session);
     if (!cache)
@@ -135,7 +135,7 @@ class GatewayHandler extends ForwardRoute {
 
   @Route.method
   async logout(body: void, request: Request<void>) {
-    const session = request.getHeader(RPCHeader.RPC_SESSION_HEADER);
+    const session = request.getHeader<string>(RPCHeader.RPC_SESSION_HEADER);
 
     await AccountWorld.deleteAccountSession(session);
 

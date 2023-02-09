@@ -5,12 +5,11 @@ import {UserErrorCode} from '../../app/ErrorCode';
 import {UserError} from '../../app/UserError';
 import {AuthRPCHeader} from '../Const';
 
-class AuthRoute<T extends Service = Service> extends Route<T> {
+class AuthRoute<T extends Service = Service> extends Route {
   static auth(authName?: string) {
     return (target: AuthRoute, method: string, descriptor: PropertyDescriptor) => {
-      const origin: RPCHandler = descriptor.value;
-      descriptor.value = async function (body: any, request: Request, response: Response) {
-        const checkAuthName = [this.service.name, authName ? authName : method].join('/');
+      target.registerMiddleware(method, async (body, request, response, connector) => {
+        const checkAuthName = [target.service.name, authName ? authName : method].join('/');
 
         const gid: AuthGroupId = request.getHeader(AuthRPCHeader.RPC_AUTH_GID);
         if (gid) {
@@ -22,17 +21,21 @@ class AuthRoute<T extends Service = Service> extends Route<T> {
             throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${checkAuthName}`);
           }
         }
-
-
-        return origin.apply(this, [body, request, response]);
-      }
-      return descriptor;
+        return true;
+      });
     };
   }
 
   constructor(service: T) {
-    super(service);
+    super();
+    this.service_ = service;
   }
+
+  get service() {
+    return this.service_;
+  }
+
+  private service_: T;
 }
 
 export {AuthRoute}
