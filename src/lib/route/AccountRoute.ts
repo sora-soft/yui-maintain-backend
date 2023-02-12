@@ -15,7 +15,7 @@ interface IAccountOptions {
 class AccountRoute extends Route {
   static account(options?: IAccountOptions) {
     return (target: AccountRoute, method: string, descriptor: PropertyDescriptor) => {
-      target.registerProvider(method, Account, async(body: any, request, response, connector) => {
+      target.registerProvider(method, Account, async(route, body, request, response, connector) => {
         if (request.getHeader(AuthRPCHeader.RPC_INNER)) {
           return null;
         }
@@ -36,10 +36,6 @@ class AccountRoute extends Route {
         return account;
       });
     };
-  }
-
-  constructor() {
-    super();
   }
 }
 

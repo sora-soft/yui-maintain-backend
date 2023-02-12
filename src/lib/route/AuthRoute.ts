@@ -1,41 +1,52 @@
-import {Request, Response, Route, RPCHandler, Service} from '@sora-soft/framework';
-import {AuthGroupId, GuestGroupId} from '../../app/account/AccountType';
-import {AccountWorld} from '../../app/account/AccountWorld';
-import {UserErrorCode} from '../../app/ErrorCode';
-import {UserError} from '../../app/UserError';
-import {AuthRPCHeader} from '../Const';
+import { Route, Service } from '@sora-soft/framework'
+import { AuthGroupId, GuestGroupId } from '../../app/account/AccountType'
+import { AccountWorld } from '../../app/account/AccountWorld'
+import { UserErrorCode } from '../../app/ErrorCode'
+import { UserError } from '../../app/UserError'
+import { AuthRPCHeader } from '../Const'
 
 class AuthRoute<T extends Service = Service> extends Route {
   static auth(authName?: string) {
-    return (target: AuthRoute, method: string, descriptor: PropertyDescriptor) => {
-      target.registerMiddleware(method, async (body, request, response, connector) => {
-        const checkAuthName = [target.service.name, authName ? authName : method].join('/');
+    return (target: AuthRoute, method: string) => {
+      target.registerMiddleware<AuthRoute>(method, async (route, body, request, response, connector) => {
+        const checkAuthName = [route.service.name, authName || method].join('/')
 
-        const gid: AuthGroupId = request.getHeader(AuthRPCHeader.RPC_AUTH_GID);
+        const gid = request.getHeader<AuthGroupId>(AuthRPCHeader.RPC_AUTH_GID)
         if (gid) {
-          if (gid === GuestGroupId)
-            throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
+          if (gid === GuestGroupId) {
+            throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN')
+          }
 
-          const allowed = await AccountWorld.hasAuth(gid, checkAuthName);
+          const allowed = await AccountWorld.hasAuth(gid, checkAuthName)
           if (!allowed) {
-            throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${checkAuthName}`);
+            throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${checkAuthName}`)
           }
         }
-        return true;
-      });
-    };
+        return true
+      })
+    }
+  }
+
+  static logined(target: AuthRoute, method: string) {
+    target.registerMiddleware(method, async (route, body, request, response, connector) => {
+      const gid = request.getHeader<AuthGroupId>(AuthRPCHeader.RPC_AUTH_GID)
+      if (!gid || gid === GuestGroupId) {
+        throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN')
+      }
+      return true
+    })
   }
 
   constructor(service: T) {
-    super();
-    this.service_ = service;
+    super()
+    this.service_ = service
   }
 
   get service() {
-    return this.service_;
+    return this.service_
   }
 
-  private service_: T;
+  private service_: T
 }
 
-export {AuthRoute}
+export { AuthRoute }

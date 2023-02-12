@@ -1,7 +1,6 @@
-import {Route} from '@sora-soft/framework';
+import {Request, Route} from '@sora-soft/framework';
 import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
-import {AccountRoute} from '../../lib/route/AccountRoute';
 import {AuthRoute} from '../../lib/route/AuthRoute';
 import {Random} from '../../lib/Utility';
 import {AccountId, AuthGroupId, PermissionResult} from '../account/AccountType';

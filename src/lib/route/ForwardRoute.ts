@@ -137,9 +137,6 @@ class ForwardRoute<T extends Service = Service> extends Route {
             return null;
           }
         }
-        case OPCode.RESPONSE:
-          // 不应该在路由处收到 rpc 回包消息
-          return null;
         default:
           return null;
       }
