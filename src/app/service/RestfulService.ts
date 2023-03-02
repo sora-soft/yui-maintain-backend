@@ -1,4 +1,4 @@
-import {IServiceOptions, ITCPListenerOptions, Node, Route, Service, TCPListener} from '@sora-soft/framework';
+import {IServiceOptions, ITCPListenerOptions, Node, NodeTime, Route, Service, TCPListener, Time, Context} from '@sora-soft/framework';
 import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
 import {Account} from '../database/Account';
@@ -23,15 +23,15 @@ class RestfulService extends Service {
     this.serviceConfig_ = options;
   }
 
-  protected async startup() {
-    await this.connectComponent(Com.businessDB);
+  protected async startup(ctx: Context) {
+    await this.connectComponent(Com.businessDB, ctx);
 
-    const route = new RestfulHandler([
+    const route = new RestfulHandler(this, [
       {
         name: 'account',
         com: Com.businessDB,
         entity: Account,
-        select: ['id', 'username', 'email', 'gid'],
+        select: ['id', 'nickname', 'email', 'gid', 'disabled'],
       },
       {
         name: 'auth-group',
@@ -46,7 +46,7 @@ class RestfulService extends Service {
     ]);
     const listener = new TCPListener(this.serviceConfig_.tcpListener, Route.callback(route));
 
-    await this.installListener(listener);
+    await this.installListener(listener, ctx);
   }
 
   protected async shutdown() {

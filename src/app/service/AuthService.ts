@@ -1,9 +1,10 @@
-import {TCPListener} from '@sora-soft/framework';
+import {Context, NodeTime, TCPListener} from '@sora-soft/framework';
 import {ITCPListenerOptions} from '@sora-soft/framework';
 import {Route} from '@sora-soft/framework';
 import {IServiceOptions, Node, Service} from '@sora-soft/framework';
 import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
+import {AccountWorld} from '../account/AccountWorld';
 import {AuthHandler} from '../handler/AuthHandler';
 import {ServiceName} from './common/ServiceName';
 
@@ -24,13 +25,18 @@ class AuthService extends Service {
     this.serviceOptions_ = options;
   }
 
-  protected async startup() {
-    await this.connectComponent(Com.businessDB);
+  protected async startup(ctx: Context) {
+    await this.connectComponent(Com.businessDB, ctx);
 
     const route = new AuthHandler(this);
 
     const listener = new TCPListener(this.serviceOptions_.tcpListener, Route.callback(route));
-    await this.installListener(listener);
+    await this.installListener(listener, ctx);
+
+    this.doJobInterval(async () => {
+      await AccountWorld.deleteExpiredAccountSession();
+    }, NodeTime.minute(5));
+    await AccountWorld.deleteExpiredAccountSession();
   }
 
   protected async shutdown() {}

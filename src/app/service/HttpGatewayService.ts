@@ -1,4 +1,4 @@
-import {IServiceOptions, Node, Service} from '@sora-soft/framework';
+import {Context, IServiceOptions, Node, Service} from '@sora-soft/framework';
 import {Pvd} from '../../lib/Provider';
 import {ServiceName} from './common/ServiceName';
 import Koa = require('koa');
@@ -33,9 +33,9 @@ class HttpGatewayService extends Service {
     this.gatewayOptions_ = options;
   }
 
-  protected async startup() {
-    await this.connectComponents([Com.businessDB, Com.businessRedis, Com.etcd, Com.aliCloud]);
-    await this.registerProviders([Pvd.restful, Pvd.auth]);
+  protected async startup(ctx: Context) {
+    await this.connectComponents([Com.businessDB, Com.businessRedis, Com.etcd, Com.aliCloud], ctx);
+    await this.registerProviders([Pvd.restful, Pvd.auth], ctx);
 
     await AccountWorld.startup();
 
@@ -48,10 +48,10 @@ class HttpGatewayService extends Service {
 
     if (this.gatewayOptions_.traefik) {
       const nameInTraefik = `${this.gatewayOptions_.traefik.name || Application.appName.replace('@', '-')}:${this.name}`;
-      await TraefikWorld.registerTraefikListener(this.gatewayOptions_.traefik.prefix, 'http', nameInTraefik, listener);
+      TraefikWorld.registerTraefikListener(this.gatewayOptions_.traefik.prefix, 'http', nameInTraefik, listener);
     }
 
-    await this.installListener(listener);
+    await this.installListener(listener, ctx);
   }
 
   protected async shutdown() {

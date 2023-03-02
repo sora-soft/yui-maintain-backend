@@ -8,41 +8,47 @@ import {AccountWorld} from '../account/AccountWorld';
 import {AuthGroupId} from '../account/AccountType';
 import {AppError} from '../AppError';
 import {Util} from '../../lib/Utility';
+import {AuthRoute} from '../../lib/route/AuthRoute';
 
-type EntityValueType<T, V> = T extends Array<any> ? V : T extends string ? never : T extends number ? never : T extends V ? never : T extends Function ? never : T extends object ? V : V;
+type EntityValueTypeProperty<T, V> = T extends Array<any> ? V : T extends string ? never : T extends number ? never : T extends V ? never : T extends Function ? never : T extends object ? EntityValueType<T> | V : V
+type EntityValueType<T> = {
+  [k in keyof T]?: EntityValueTypeProperty<T[k], boolean>;
+}
 export interface IRestfulHandlerCom<T = unknown> {
-  name: string;
-  com: DatabaseComponent;
-  entity: EntityTarget<T>;
-  select?: string[];
+  name: string;
+  com: DatabaseComponent;
+  entity: EntityTarget<T>;
+  select?: string[];
 }
 
 export type RestfulHandlerComList = IRestfulHandlerCom[];
 
-export interface IReqFetch<T> {
+export interface IRestfulReq {
   db: string;
-  offset?: number;
-  limit?: number;
-  relations?: {
-    [k in keyof T]?: EntityValueType<T, boolean>;
-  };
-  order?: {
-    [k in keyof T]?: EntityValueType<T, FindOptionsOrderValue>;
-  };
-  select?: string[];
-  where?: WhereCondition<T>;
+}
+
+export interface IReqFetch<T> {
+  db: string;
+  offset?: number;
+  limit?: number;
+  relations?: EntityValueType<T>;
+  order?: {
+    [k in keyof T]?: FindOptionsOrderValue;
+  };
+  select?: string[];
+  where?: WhereCondition<T>;
 }
 
 export interface IReqUpdate<T> {
   data: Partial<T>;
-  id: any;
+  where: WhereCondition<T>;
   db: string;
 }
 
 export interface IReqUpdateBatch<T> {
   db: string;
   list: {
-    id: any;
+    where: WhereCondition<T>;
     data: Partial<T>;
   }[];
 }
@@ -57,28 +63,20 @@ export interface IReqInsertBatch<T> {
   list: Partial<T>[];
 }
 
-export interface IReqDeleteBatch {
+export interface IReqDelete<T> {
   db: string;
-  list: any[];
+  where: WhereCondition<T>;
+}
+
+export interface IReqDeleteBatch<T> {
+  db: string;
+  where: WhereCondition<T>[];
 }
 
 @ValidateClass()
-class RestfulHandler extends Route {
-  static async authChecker(gid: AuthGroupId, service: string, method: string, request: Request<{db: string}>) {
-    const methodConvertMap = {
-      fetch: 'fetch',
-      insert: 'insert',
-      insertBatch: 'insert',
-      update: 'update',
-      updateBatch: 'update',
-      deleteBatch: 'delete',
-    }
-    const db = request.payload.db;
-    return AccountWorld.hasAuth(gid, [service, methodConvertMap[method], db].join('.'));
-  }
-
-  constructor(list: RestfulHandlerComList) {
-    super();
+class RestfulHandler extends AuthRoute {
+  constructor(service: Service, list: RestfulHandlerComList) {
+    super(service);
     this.dbMap_ = new Map();
     for(const data of list) {
       this.dbMap_.set(data.name, data);
@@ -86,6 +84,7 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
+  @AuthRoute.restful()
   async fetch<T extends ObjectLiteral>(@AssertType() body: IReqFetch<T>) {
     const {com, entity, select} = this.getPair<T>(body.db);
 
@@ -136,6 +135,7 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
+  @AuthRoute.restful()
   async insert<T extends ObjectLiteral>(@AssertType() body: IReqInsert<T>) {
     const {com, entity} = this.getPair<T>(body.db);
 
@@ -149,6 +149,7 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
+  @AuthRoute.restful('insert')
   async insertBatch<T extends ObjectLiteral>(@AssertType() body: IReqInsertBatch<T>) {
     const {com, entity} = this.getPair<T>(body.db);
 
@@ -166,24 +167,26 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
+  @AuthRoute.restful()
   async update<T extends ObjectLiteral>(@AssertType() body: IReqUpdate<T>) {
     const {com, entity} = this.getPair<T>(body.db);
 
     const data = await this.installData<T>(entity, body.data);
 
-    await com.manager.update(entity, body.id, data);
+    await com.manager.update(entity, body.where, data);
 
     return {};
   }
 
   @Route.method
+  @AuthRoute.restful('update')
   async updateBatch<T extends ObjectLiteral>(@AssertType() body: IReqUpdateBatch<T>) {
     const {com, entity} = this.getPair<T>(body.db);
 
     await com.manager.transaction(async (manager) => {
       for (const d of body.list) {
         const data = await this.installData<T>(entity, d.data);
-        await manager.update(entity, d.id, data);
+        await manager.update(entity, d.where, data);
       }
     });
 
@@ -191,9 +194,19 @@ class RestfulHandler extends Route {
   }
 
   @Route.method
-  async deleteBatch<T extends ObjectLiteral>(@AssertType() body: IReqDeleteBatch) {
+  @AuthRoute.restful()
+  async delete<T extends ObjectLiteral>(@AssertType() body: IReqDelete<T>) {
     const {com, entity} = this.getPair<T>(body.db);
-    await com.manager.delete(entity, body.list);
+
+    await com.manager.delete(entity, body.where);
+    return {};
+  }
+
+  @Route.method
+  @AuthRoute.restful('delete')
+  async deleteBatch<T extends ObjectLiteral>(@AssertType() body: IReqDeleteBatch<T>) {
+    const {com, entity} = this.getPair<T>(body.db);
+    await com.manager.delete(entity, body.where);
 
     return {};
   }

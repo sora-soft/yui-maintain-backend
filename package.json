@@ -9,6 +9,7 @@
   "scripts": {
     "build": "rimraf ./dist && ttsc",
     "dev": "npm run build && node ./bin/cli.js run server --config ./config.yml -w ./run",
+    "start": "node ./bin/cli.js run server --config ./config.yml -w ./run",
     "migrate:sync": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n database-migrate-command sync",
     "migrate": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n database-migrate-command migrate",
     "migrate:drop": "node ./bin/cli.js command --config ./config-command.yml -w ./run -n database-migrate-command drop",
@@ -31,8 +32,8 @@
     "@sora-soft/database-component": "^1.3.0",
     "@sora-soft/etcd-component": "^1.1.0",
     "@sora-soft/etcd-discovery": "^1.1.1",
-    "@sora-soft/framework": "^1.8.5",
-    "@sora-soft/http-support": "^1.2.0",
+    "@sora-soft/framework": "^1.8.13",
+    "@sora-soft/http-support": "^1.2.4",
     "@sora-soft/redis-component": "^1.1.1",
     "axios": "^0.21.1",
     "camelcase": "^6.2.0",

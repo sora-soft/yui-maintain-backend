@@ -2,11 +2,6 @@ import {AuthGroup, AuthPermission} from '../database/Auth';
 
 export type AccountId = number;
 
-export interface IAccountSessionData {
-  accountId: AccountId;
-  gid: AuthGroupId;
-}
-
 export type AuthGroupId = string;
 
 export enum PermissionResult {
@@ -28,11 +23,16 @@ export const DefaultGroupList: Pick<AuthGroup, 'id' | 'name' | 'protected'>[] = 
   {
     id: UserGroupId,
     name: 'User',
-    protected: false,
+    protected: true,
   },
   {
     id: RootGroupId,
     name: 'Root',
+    protected: true,
+  },
+  {
+    id: GuestGroupId,
+    name: 'Guest',
     protected: true,
   }
 ];

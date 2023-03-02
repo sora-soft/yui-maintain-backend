@@ -30,66 +30,6 @@ class Hash {
   }
 }
 
-class UnixTime {
-  static fromNodeTime(ms: number) {
-    return Math.floor(ms / 1000);
-  }
-
-  static fromDate(date: Date) {
-    return Math.floor(date.getTime() / 1000)
-  }
-
-  static now() {
-    return this.fromDate(new Date());
-  }
-
-  static day(days: number) {
-    return days * this.hour(24);
-  }
-
-  static hour(hours: number) {
-    return hours * this.minute(60);
-  }
-
-  static minute(minutes: number) {
-    return minutes * this.second(60);
-  }
-
-  static second(seconds: number) {
-    return seconds;
-  }
-}
-
-class NodeTime {
-  static fromUnixTime(second: number) {
-    return second * 1000;
-  }
-
-  static fromDate(date: Date) {
-    return date.getTime();
-  }
-
-  static now() {
-    return new Date().getTime();
-  }
-
-  static day(days: number) {
-    return days * this.hour(24)// 60 * 60 * 24 * days * 1000;
-  }
-
-  static hour(hours: number) {
-    return hours * this.minute(60);
-  }
-
-  static minute(minutes: number) {
-    return minutes * this.second(60);
-  }
-
-  static second(seconds: number) {
-    return seconds * 1000;
-  }
-}
-
 class PathUtility {
   static convertWSLPathToWindows(filePath: string) {
     if (process.env.platform === 'wsl') {
@@ -105,4 +45,4 @@ type NonFunctionPropertyNames<T> = {
 }[keyof T];
 type NonFunctionProperties<T> = Pick<T, NonFunctionPropertyNames<T>>;
 
-export {Random, Hash, UnixTime, NodeTime, NonFunctionProperties, PathUtility, Util}
+export {Random, Hash, NonFunctionProperties, PathUtility, Util}

@@ -1,7 +1,7 @@
 import {Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component';
-import {UnixTime} from '../../lib/Utility';
+import {UnixTime} from '@sora-soft/framework';
 import {AuthGroupId, PermissionResult} from '../account/AccountType';
-import {Timestamp} from './Type';
+import {Timestamp} from './utility/Type';
 
 @Entity({
   engine: 'InnoDB AUTO_INCREMENT=1000'

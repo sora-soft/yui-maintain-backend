@@ -2,7 +2,7 @@ import {Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryColumn, P
 import {IsEmail} from 'class-validator';
 import {AccountId, AuthGroupId} from '../account/AccountType';
 import {AuthGroup} from './Auth';
-import {Timestamp} from './Type';
+import {Timestamp} from './utility/Type';
 
 @Entity()
 @Index('username_idx', ['username'], { unique: true })
@@ -29,6 +29,33 @@ export class AccountPassword {
   salt: string;
 }
 
+@Entity()
+@Index('accountId_idx', ['accountId'])
+@Index('expireAt_idx', ['expireAt'])
+@Index('gid_idx', ['gid'])
+export class AccountToken {
+  constructor(data?: Partial<AccountToken>) {
+    if (!data)
+      return;
+
+    Object.entries(data).forEach(([key, value]) => {
+      this[key] = value;
+    });
+  }
+
+  @PrimaryColumn()
+  session: string;
+
+  @Column()
+  expireAt: Timestamp;
+
+  @Column()
+  accountId: AccountId;
+
+  @Column()
+  gid: AuthGroupId;
+}
+
 @Entity({
   name: 'user_account',
   engine: 'InnoDB AUTO_INCREMENT=1000',
@@ -36,7 +63,7 @@ export class AccountPassword {
 @Index('nickname_idx', ['nickname'], { unique: true })
 @Index('email_idx', ['email'], { unique: true })
 export class Account {
-    constructor(data?: Partial<Account>) {
+  constructor(data?: Partial<Account>) {
     if (!data)
       return;
 
@@ -68,4 +95,7 @@ export class Account {
 
   @Column()
   createTime: Timestamp;
+
+  @Column({default: false})
+  disabled: boolean;
 }

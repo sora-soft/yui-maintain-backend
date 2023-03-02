@@ -1,16 +1,19 @@
-import {Hash, NodeTime, Random, UnixTime} from '../../lib/Utility';
+import {Hash, Random} from '../../lib/Utility';
 import {Com} from '../../lib/Com';
-import {Account, AccountPassword} from '../database/Account';
+import {Account, AccountPassword, AccountToken} from '../database/Account';
 import {AuthGroup, AuthPermission} from '../database/Auth';
 import {UserErrorCode} from '../ErrorCode';
 import {RedisKey} from '../Keys';
 import {UserError} from '../UserError';
-import {AccountId, AuthGroupId, DefaultGroupList, DefaultPermissionList, IAccountSessionData, PermissionResult, RootGroupId} from './AccountType';
+import {AccountId, AuthGroupId, DefaultGroupList, DefaultPermissionList, PermissionResult, RootGroupId} from './AccountType';
 import {validate} from 'class-validator';
 import {Application} from '../Application';
 import {AccountType} from '../../lib/Enum';
 import {AccountLock} from './AccountLock';
 import {ForgetPasswordEmail} from './AccountEmail';
+import {NodeTime, UnixTime} from '@sora-soft/framework';
+import {EntityManager, LessThan, Not, MoreThan} from '@sora-soft/database-component';
+import {transaction} from '../database/utility/Decorators';
 
 class AccountWorld {
   static async startup() {
@@ -47,16 +50,51 @@ class AccountWorld {
     }
   }
 
-  static async setAccountSession(session: string, data: IAccountSessionData, expire: number = NodeTime.hour(8)) {
-    await Com.businessRedis.setJSON(RedisKey.accountSession(session), data, expire);
+  static async getAccountSession(session: string): Promise<AccountToken | null> {
+    return Com.businessDB.manager.findOneBy(AccountToken, {
+      session,
+      expireAt: MoreThan(UnixTime.now())
+    });
   }
 
-  static async getAccountSession(session: string): Promise<IAccountSessionData> {
-    return Com.businessRedis.getJSON(RedisKey.accountSession(session));
+  @transaction(Com.businessDB)
+  static async setAccountSession(session: string, account: Account, expire: number = UnixTime.hour(8), manager?: EntityManager) {
+    await manager!.save(new AccountToken({
+      session,
+      accountId: account.id,
+      expireAt: UnixTime.now() + expire,
+      gid: account.gid,
+    }));
   }
 
-  static async deleteAccountSession(session: string) {
-    return Com.businessRedis.client.del(RedisKey.accountSession(session));
+  @transaction(Com.businessDB)
+  static async deleteAccountSession(session: string, manager?: EntityManager) {
+    return manager!.delete(AccountToken, {token: session});
+  }
+
+  @transaction(Com.businessDB)
+  static async deleteAccountSessionByAccountId(accountId: AccountId, manager?: EntityManager) {
+    return manager!.delete(AccountToken, {accountId});
+  }
+
+  @transaction(Com.businessDB)
+  static async deleteAccountSessionByAccountIdExcept(accountId: AccountId, token: string, manager?: EntityManager) {
+    return manager!.delete(AccountToken, {
+      accountId,
+      token: Not(token),
+    });
+  }
+
+  @transaction(Com.businessDB)
+  static async deleteExpiredAccountSession(manager?: EntityManager) {
+    return manager!.delete(AccountToken, {
+      expireAt: LessThan(UnixTime.now()),
+    });
+  }
+
+  @transaction(Com.businessDB)
+  static async deleteAccountSessionByGid(gid: AuthGroupId, manager?: EntityManager) {
+    return manager!.delete(AccountToken, {gid});
   }
 
   static async hasAuth(gid: AuthGroupId, name: string) {
@@ -76,15 +114,14 @@ class AccountWorld {
     return permission.every((p) => { return p.permission === PermissionResult.ALLOW });
   }
 
-  static async resetAccountPassword(account: Partial<Account>, password: string) {
+  @transaction(Com.businessDB)
+  static async resetAccountPassword(account: Account, password: string, manager?: EntityManager) {
     const salt = Random.randomString(20);
     const hashedPassword = Hash.md5(password + salt);
-    await Com.businessDB.manager.update(AccountPassword, account.id, {
+    await manager!.update(AccountPassword, account.id, {
       password: hashedPassword,
       salt,
     });
-
-    Application.appLog.info('account-world', { event: 'reset-password', accountId: account.id });
   }
 
   static async sendAccountResetPassEmail(account: Account, code: string) {

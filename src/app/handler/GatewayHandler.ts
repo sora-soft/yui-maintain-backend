@@ -1,6 +1,6 @@
-import {Request, Route, RPCHeader} from '@sora-soft/framework';
+import {Request, Route, RPCHeader, UnixTime} from '@sora-soft/framework';
 import {Com} from '../../lib/Com';
-import {Account, AccountPassword} from '../database/Account';
+import {Account, AccountPassword, AccountToken} from '../database/Account';
 import {UserErrorCode} from '../ErrorCode';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {UserError} from '../UserError';
@@ -8,8 +8,9 @@ import {AccountWorld} from '../account/AccountWorld';
 import {ForwardRoute} from '../../lib/route/ForwardRoute';
 import {UserGroupId} from '../account/AccountType';
 import {Application} from '../Application';
-import {Hash, NodeTime} from '../../lib/Utility';
+import {Hash} from '../../lib/Utility';
 import {AuthPermission} from '../database/Auth';
+import {AccountRoute} from '../../lib/route/AccountRoute';
 
 export interface IRegisterReq {
   username: string;
@@ -69,11 +70,11 @@ class GatewayHandler extends ForwardRoute {
     if (!account)
       throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
 
-    const ttl = body.remember ? NodeTime.day(5) : NodeTime.hour(8);
-    await AccountWorld.setAccountSession(session, {
-      accountId: userPass.id,
-      gid: account.gid,
-    }, ttl);
+    if (account.disabled)
+      throw new UserError(UserErrorCode.ERR_ACCOUNT_DISABLED, `ERR_ACCOUNT_DISABLED`);
+
+    const ttl = body.remember ? UnixTime.day(5) : UnixTime.hour(8);
+    await AccountWorld.setAccountSession(session, account, ttl);
 
     const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
@@ -96,29 +97,14 @@ class GatewayHandler extends ForwardRoute {
   }
 
   @Route.method
-  async info(body: void, request: Request<void>) {
-    const session = request.getHeader<string>(RPCHeader.RPC_SESSION_HEADER);
-
-    const cache = await AccountWorld.getAccountSession(session);
-    if (!cache)
-      throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
-
-    const account = await Com.businessDB.manager.findOne(Account, {
-      where: {
-        id: cache.accountId
-      },
-      relations: {
-        userPass: true
-      }
-    });
-
-    if (!account)
-      throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
-
+  @AccountRoute.account({
+    relations: {userPass: true}
+  })
+  async info(body: void, account: Account) {
     const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
       where: {
-        gid: cache.gid,
+        gid: account.gid,
       },
     });
 
@@ -134,10 +120,9 @@ class GatewayHandler extends ForwardRoute {
   }
 
   @Route.method
-  async logout(body: void, request: Request<void>) {
-    const session = request.getHeader<string>(RPCHeader.RPC_SESSION_HEADER);
-
-    await AccountWorld.deleteAccountSession(session);
+  @AccountRoute.token()
+  async logout(body: void, token: AccountToken) {
+    await AccountWorld.deleteAccountSession(token.session);
 
     return {};
   }

@@ -3,7 +3,7 @@ import {Com} from '../../lib/Com';
 import {EtcdKey} from '../Keys';
 
 class TraefikWorld {
-  static async registerTraefikListener(prefix: string, protocol: string, name: string, listener: Listener) {
+  static registerTraefikListener(prefix: string, protocol: string, name: string, listener: Listener) {
     const loadBalancerKey = EtcdKey.traefikConfigServiceUrl(prefix, protocol, name, listener.id);
 
     listener.stateEventEmitter.on(LifeCycleEvent.StateChangeTo, async (state) => {

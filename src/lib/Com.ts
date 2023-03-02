@@ -1,6 +1,6 @@
 import {RedisComponent} from '@sora-soft/redis-component';
 import {DatabaseComponent} from '@sora-soft/database-component'
-import {Account, AccountPassword} from '../app/database/Account';
+import {Account, AccountPassword, AccountToken} from '../app/database/Account';
 import {EtcdComponent} from '@sora-soft/etcd-component';
 import {AuthGroup, AuthPermission} from '../app/database/Auth';
 import {AliCloudComponent} from '../com/alicloud/AliCloudComponent';
@@ -24,7 +24,7 @@ class Com {
   static businessRedis = new RedisComponent();
 
   static businessDB = new DatabaseComponent([
-    Account, AccountPassword, AuthGroup, AuthPermission,
+    Account, AccountPassword, AuthGroup, AuthPermission, AccountToken,
   ]);
 
   static etcd = new EtcdComponent();

@@ -6,5 +6,4 @@ export class ForwardRPCHeader {
 export class AuthRPCHeader {
   static readonly RPC_AUTH_GID = 'Rpc-auth-gid';
   static readonly RPC_ACCOUNT_ID = 'Rpc-account-id';
-  static readonly RPC_INNER = 'Rpc-inner';
 }
