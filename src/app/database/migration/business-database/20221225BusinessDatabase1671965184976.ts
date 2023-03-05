@@ -21,4 +21,4 @@ export class BusinessDatabase1671965184976 implements MigrationInterface {
     await queryRunner.query('DROP TABLE `auth_permission`');
     await queryRunner.query('DROP TABLE `auth_group`');
   }
-};
+}

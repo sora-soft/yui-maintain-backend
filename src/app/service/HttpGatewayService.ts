@@ -17,7 +17,7 @@ export interface IHttpGatewayOptions extends IServiceOptions {
   traefik?: {
     prefix: string;
     name: string;
-  }
+  };
 }
 
 @ValidateClass()
@@ -61,4 +61,4 @@ class HttpGatewayService extends Service {
   private gatewayOptions_: IHttpGatewayOptions;
 }
 
-export {HttpGatewayService}
+export {HttpGatewayService};

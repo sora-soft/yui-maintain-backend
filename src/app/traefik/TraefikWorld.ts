@@ -31,4 +31,4 @@ class TraefikWorld {
   }
 }
 
-export {TraefikWorld}
+export {TraefikWorld};

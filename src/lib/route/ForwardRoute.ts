@@ -1,8 +1,8 @@
-import {ErrorLevel, ExError, IRawNetPacket, IRawResPacket, ListenerCallback, Logger, NodeTime, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, RPCResponseError, Runtime, Service} from '@sora-soft/framework';
+import {ErrorLevel, ExError, IRawResPacket, ListenerCallback, Logger, NodeTime, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, RPCResponseError, Runtime, Service} from '@sora-soft/framework';
 import {GuestGroupId} from '../../app/account/AccountType';
 import {AccountWorld} from '../../app/account/AccountWorld';
 import {Application} from '../../app/Application';
-import {UserErrorCode, AppErrorCode} from '../../app/ErrorCode';
+import {UserErrorCode} from '../../app/ErrorCode';
 import {ServiceName} from '../../app/service/common/ServiceName';
 import {AuthRPCHeader, ForwardRPCHeader} from '../Const';
 
@@ -24,7 +24,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
   private service: T;
 
   private getProvider(service: ServiceName) {
-    if (!this.routeProviderMap_.has(service as ServiceName))
+    if (!this.routeProviderMap_.has(service))
       throw new RPCError(RPCErrorCode.ERR_RPC_SERVICE_NOT_FOUND, `ERR_RPC_SERVICE_NOT_FOUND, service=${service}`);
 
     const provider: Provider<Route> | undefined = this.routeProviderMap_.get(service);
@@ -44,7 +44,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
           const request = new Request(packet);
           const response = new Response();
           if (!packet.path)
-            this.makeErrorRPCResponse(request, response, new RPCResponseError(RPCErrorCode.ERR_RPC_METHOD_NOT_FOUND, ErrorLevel.EXPECTED, `ERR_RPC_METHOD_NOT_FOUND`))
+            this.makeErrorRPCResponse(request, response, new RPCResponseError(RPCErrorCode.ERR_RPC_METHOD_NOT_FOUND, ErrorLevel.EXPECTED, 'ERR_RPC_METHOD_NOT_FOUND'));
 
           const [service, method] = packet.path?.split('/').slice(-2) as [ServiceName, string];
           const shouldForward = service !== route.service.name;
@@ -53,7 +53,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
           request.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
           request.setHeader(AuthRPCHeader.RPC_AUTH_GID, token?.gid || GuestGroupId);
           request.setHeader(AuthRPCHeader.RPC_ACCOUNT_ID, token?.accountId);
-          Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: request.method, request: request.payload });
+          Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: request.method, request: request.payload});
 
           response.setHeader(RPCHeader.RPC_ID_HEADER, rpcId);
           response.setHeader(RPCHeader.RPC_FROM_ID_HEADER, route.service.id);
@@ -62,16 +62,16 @@ class ForwardRoute<T extends Service = Service> extends Route {
             // 调用 route 本身方法
             const result = await route.callMethod(request.method, request, response, connector).catch((err: ExError) => {
               if (err.level !== ErrorLevel.EXPECTED) {
-                Runtime.rpcLogger.error('forward-route', err, { event: 'rpc-handler', error: Logger.errorMessage(err), service: route.service.name, method: request.method, request: request.payload });
+                Runtime.rpcLogger.error('forward-route', err, {event: 'rpc-handler', error: Logger.errorMessage(err), service: route.service.name, method: request.method, request: request.payload});
                 return {
                   error: {
                     code: UserErrorCode.ERR_SERVER_INTERNAL,
                     name: 'RPCResponseError',
                     level: ErrorLevel.UNEXPECTED,
-                    message: `ERR_SERVER_INTERNAL`,
+                    message: 'ERR_SERVER_INTERNAL',
                   },
                   result: null,
-                }
+                };
               }
               return {
                 error: {
@@ -84,13 +84,13 @@ class ForwardRoute<T extends Service = Service> extends Route {
               };
             });
             response.payload = result;
-            Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: request.method, duration: Date.now() - startTime });
+            Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: request.method, duration: Date.now() - startTime});
             return response.toPacket();
           } else {
             // 转发至其他服务
             const provider = route.getProvider(service);
 
-            const res: Response<unknown> = await provider.caller.rpc(route.service.id)[method](request.payload, {
+            const res: Response<unknown> = await provider.rpc(route.service.id)[method](request.payload, {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
@@ -103,12 +103,12 @@ class ForwardRoute<T extends Service = Service> extends Route {
                 case ErrorLevel.EXPECTED:
                   throw new RPCResponseError(error.code as RPCErrorCode, ErrorLevel.EXPECTED, error.message);
                 default:
-                  Application.appLog.error('forward-route', error, { error: Logger.errorMessage(error), service, method });
-                  throw new RPCResponseError(UserErrorCode.ERR_SERVER_INTERNAL, ErrorLevel.UNEXPECTED, `ERR_SERVER_INTERNAL`);
+                  Application.appLog.error('forward-route', error, {error: Logger.errorMessage(error), service, method});
+                  throw new RPCResponseError(UserErrorCode.ERR_SERVER_INTERNAL, ErrorLevel.UNEXPECTED, 'ERR_SERVER_INTERNAL');
               }
             });
             response.payload = res.payload;
-            Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: request.method, duration: Date.now() - startTime });
+            Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: request.method, duration: Date.now() - startTime});
             return response.toPacket();
           }
         }
@@ -117,7 +117,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
           notify.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
           notify.setHeader(AuthRPCHeader.RPC_AUTH_GID, token?.gid || GuestGroupId);
           notify.setHeader(AuthRPCHeader.RPC_ACCOUNT_ID, token?.accountId);
-          Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method });
+          Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method});
 
           if (!packet.path)
             return null;
@@ -127,16 +127,16 @@ class ForwardRoute<T extends Service = Service> extends Route {
 
           if (!shouldForward) {
             // 调用 route 本身方法
-            await route.callNotify(notify.method, notify, connector).catch(err => {
-              Runtime.frameLogger.error('forward-route', err, { event: 'notify-handler', error: Logger.errorMessage(err), service: route.service.name, method: notify.method, request: notify.payload });
+            await route.callNotify(notify.method, notify, connector).catch((err: ExError) => {
+              Runtime.frameLogger.error('forward-route', err, {event: 'notify-handler', error: Logger.errorMessage(err), service: route.service.name, method: notify.method, request: notify.payload});
             });
-            Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method,duration: Date.now() - startTime });
+            Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method,duration: Date.now() - startTime});
             return null;
           } else {
             // 转发至其他服务
-            const provider = route.getProvider(service as ServiceName);
+            const provider = route.getProvider(service );
 
-            await provider.caller.notify(route.service.id)[method](notify.payload, {
+            await provider.notify(route.service.id)[method](notify.payload, {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
@@ -144,7 +144,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
                 [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null
               }
             });
-            Runtime.rpcLogger.debug('forward-route', { service: route.service.name, method: notify.method, duration: Date.now() - startTime });
+            Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method, duration: Date.now() - startTime});
             return null;
           }
         }
@@ -155,4 +155,4 @@ class ForwardRoute<T extends Service = Service> extends Route {
   }
 }
 
-export {ForwardRoute}
+export {ForwardRoute};

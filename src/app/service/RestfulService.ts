@@ -1,4 +1,4 @@
-import {IServiceOptions, ITCPListenerOptions, Node, NodeTime, Route, Service, TCPListener, Time, Context} from '@sora-soft/framework';
+import {IServiceOptions, ITCPListenerOptions, Node, Route, Service, TCPListener, Context} from '@sora-soft/framework';
 import {AssertType, ValidateClass} from 'typescript-is';
 import {Com} from '../../lib/Com';
 import {Account} from '../database/Account';
@@ -55,4 +55,4 @@ class RestfulService extends Service {
   private serviceConfig_: IRestOptions;
 }
 
-export {RestfulService}
+export {RestfulService};

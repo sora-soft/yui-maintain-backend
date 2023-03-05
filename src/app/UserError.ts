@@ -9,4 +9,4 @@ class UserError extends ExError {
   }
 }
 
-export {UserError}
+export {UserError};

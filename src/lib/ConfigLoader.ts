@@ -2,11 +2,10 @@ import {ConfigFileType} from './Enum';
 import fs = require('fs/promises');
 import url = require('url');
 import yaml = require('js-yaml');
-import axios from 'axios';
+import axios, {AxiosResponse} from 'axios';
 import {AppError} from '../app/AppError';
 import {AppErrorCode} from '../app/ErrorCode';
 import path = require('path');
-import os = require('os');
 import process = require('process');
 
 class ConfigLoader<T extends {}> {
@@ -16,7 +15,7 @@ class ConfigLoader<T extends {}> {
     const fileContent = await fs.readFile(filepath);
     switch(type) {
       case ConfigFileType.JSON:
-        return JSON.parse(fileContent.toString());
+        return JSON.parse(fileContent.toString()) as T;
       case ConfigFileType.YAML:
         return yaml.load(fileContent.toString());
       case ConfigFileType.RAW:
@@ -25,11 +24,11 @@ class ConfigLoader<T extends {}> {
   }
 
   async readURL(target: string) {
-    const response = await axios.get(target);
+    const response = await axios.get<unknown, AxiosResponse<{error: unknown}>>(target);
     if (response.status === 200 && !response.data.error) {
-      return response.data;
+      return response.data as unknown as T;
     }
-    throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, `ERR_LOAD_CONFIG, url=${url}`);
+    throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, `ERR_LOAD_CONFIG, url=${target}`);
   }
 
   async load(targetUrl: string) {
@@ -71,4 +70,4 @@ class ConfigLoader<T extends {}> {
   private config_: T;
 }
 
-export {ConfigLoader}
+export {ConfigLoader};

@@ -43,4 +43,4 @@ class AliCloudPop {
   private popCore_: PopCore;
 }
 
-export {AliCloudPop}
+export {AliCloudPop};

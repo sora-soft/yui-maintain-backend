@@ -1,6 +1,5 @@
 import {ETCDDiscovery} from '@sora-soft/etcd-discovery';
-import {ConsoleOutput, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, LogLevel, Node, Runtime} from '@sora-soft/framework';
-import {AppConst} from './Const';
+import {ConsoleOutput, ExError, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, Logger, LogLevel, Node, Runtime} from '@sora-soft/framework';
 import {AppLogger} from './AppLogger';
 import {Pvd} from '../lib/Provider';
 import {ServiceRegister} from './service/common/ServiceRegister';
@@ -11,13 +10,13 @@ import {WorkerRegister} from './worker/common/WorkerRegister';
 import {FileOutput} from '../lib/FileLogger';
 import {Com} from '../lib/Com';
 
-// tslint:disable-next-line
-const pkg = require('../../package.json');
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-var-requires
+const pkg: {version: string; name: string} = require('../../package.json');
 
 export interface IApplicationLoggerOptions {
   file: {
     fileFormat: string;
-  }
+  };
 }
 
 export interface IApplicationOptions {
@@ -30,13 +29,13 @@ export interface IApplicationOptions {
   node: INodeOptions;
   services?: {
     [name: string]: IServiceOptions;
-  }
+  };
   workers?: {
     [name: string]: IWorkerOptions;
-  }
+  };
   components?: {
     [name: string]: IComponentOptions;
-  }
+  };
 }
 
 class Application {
@@ -95,7 +94,9 @@ class Application {
           this.appLog.error('application', err);
           continue;
         }
-        Runtime.installService(service);
+        Runtime.installService(service).catch((err: ExError) => {
+          this.appLog.error('application', err, {event: 'install-service-error', error: Logger.errorMessage(err)});
+        });
       }
     }
 
@@ -107,7 +108,9 @@ class Application {
           this.appLog.error('application', err);
           continue;
         }
-        Runtime.installWorker(worker);
+        Runtime.installWorker(worker).catch((err: ExError) => {
+          this.appLog.error('application', err, {event: 'install-worker-error', error: Logger.errorMessage(err)});
+        });
       }
     }
   }
@@ -155,7 +158,8 @@ class Application {
     this.config_ = options;
     try {
       assertType<IApplicationOptions>(options);
-    } catch(err) {
+    } catch(e) {
+      const err = ExError.fromError(e as Error);
       throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, `ERR_LOAD_CONFIG, message=${err.message}`);
     }
 
@@ -173,12 +177,11 @@ class Application {
     await Runtime.loadConfig({scope: options.discovery.scope});
     const discovery = new ETCDDiscovery({
       etcdComponentName: options.discovery.etcdComponentName,
-      ttl: 10,
       prefix: `/${Runtime.scope}`
     });
     const node = new Node(options.node);
     await Runtime.startup(node, discovery);
-    this.appLog_.success('application', { event: 'app-start', versions: { runtime: Runtime.version }, processId: process.pid });
+    this.appLog_.success('application', {event: 'app-start', versions: {runtime: Runtime.version}, processId: process.pid});
 
     ServiceRegister.init();
     WorkerRegister.init();

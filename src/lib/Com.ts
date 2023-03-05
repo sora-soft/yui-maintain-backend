@@ -1,5 +1,5 @@
 import {RedisComponent} from '@sora-soft/redis-component';
-import {DatabaseComponent} from '@sora-soft/database-component'
+import {DatabaseComponent} from '@sora-soft/database-component';
 import {Account, AccountPassword, AccountToken} from '../app/database/Account';
 import {EtcdComponent} from '@sora-soft/etcd-component';
 import {AuthGroup, AuthPermission} from '../app/database/Auth';
@@ -33,4 +33,4 @@ class Com {
 
 }
 
-export {Com}
+export {Com};

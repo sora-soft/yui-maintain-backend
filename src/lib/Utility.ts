@@ -34,7 +34,7 @@ class PathUtility {
   static convertWSLPathToWindows(filePath: string) {
     if (process.env.platform === 'wsl') {
       const prefix = filePath.split('/').slice(0, 3);
-      return `${prefix[2].toLocaleUpperCase()}:/` + filePath.split('/').slice(3).join('/')
+      return `${prefix[2].toLocaleUpperCase()}:/` + filePath.split('/').slice(3).join('/');
     }
     return filePath;
   }
@@ -45,4 +45,4 @@ type NonFunctionPropertyNames<T> = {
 }[keyof T];
 type NonFunctionProperties<T> = Pick<T, NonFunctionPropertyNames<T>>;
 
-export {Random, Hash, NonFunctionProperties, PathUtility, Util}
+export {Random, Hash, NonFunctionProperties, PathUtility, Util};

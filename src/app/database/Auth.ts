@@ -1,4 +1,4 @@
-import {Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component';
+import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component';
 import {UnixTime} from '@sora-soft/framework';
 import {AuthGroupId, PermissionResult} from '../account/AccountType';
 import {Timestamp} from './utility/Type';

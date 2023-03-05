@@ -1,7 +1,7 @@
 import {Request, Route, RPCHeader, UnixTime} from '@sora-soft/framework';
 import {Com} from '../../lib/Com';
 import {Account, AccountPassword, AccountToken} from '../database/Account';
-import {UserErrorCode} from '../ErrorCode';
+import {AppErrorCode, UserErrorCode} from '../ErrorCode';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {UserError} from '../UserError';
 import {AccountWorld} from '../account/AccountWorld';
@@ -11,6 +11,7 @@ import {Application} from '../Application';
 import {Hash} from '../../lib/Utility';
 import {AuthPermission} from '../database/Auth';
 import {AccountRoute} from '../../lib/route/AccountRoute';
+import {AppError} from '../AppError';
 
 export interface IRegisterReq {
   username: string;
@@ -56,22 +57,24 @@ class GatewayHandler extends ForwardRoute {
       },
     });
     if (!userPass)
-      throw new UserError(UserErrorCode.ERR_USERNAME_NOT_FOUND, `ERR_USERNAME_NOT_FOUND`);
+      throw new UserError(UserErrorCode.ERR_USERNAME_NOT_FOUND, 'ERR_USERNAME_NOT_FOUND');
 
     const password = Hash.md5(body.password + userPass.salt);
 
     if (userPass.password !== password)
-      throw new UserError(UserErrorCode.ERR_WRONG_PASSWORD, `ERR_WRONG_PASSWORD`);
+      throw new UserError(UserErrorCode.ERR_WRONG_PASSWORD, 'ERR_WRONG_PASSWORD');
 
     const session = request.getHeader<string>(RPCHeader.RPC_SESSION_HEADER);
+    if (!session)
+      throw new AppError(AppErrorCode.ERR_NO_SESSION, 'ERR_NO_SESSION');
 
     const account = await Com.businessDB.manager.findOneBy(Account, {id: userPass.id});
 
     if (!account)
-      throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, `ERR_ACCOUNT_NOT_FOUND`);
+      throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, 'ERR_ACCOUNT_NOT_FOUND');
 
     if (account.disabled)
-      throw new UserError(UserErrorCode.ERR_ACCOUNT_DISABLED, `ERR_ACCOUNT_DISABLED`);
+      throw new UserError(UserErrorCode.ERR_ACCOUNT_DISABLED, 'ERR_ACCOUNT_DISABLED');
 
     const ttl = body.remember ? UnixTime.day(5) : UnixTime.hour(8);
     await AccountWorld.setAccountSession(session, account, ttl);
@@ -83,7 +86,7 @@ class GatewayHandler extends ForwardRoute {
       }
     });
 
-    Application.appLog.info('gateway', { event: 'account-login', account: { id: userPass.id, gid: account.gid, email: account.email, username: userPass.username } });
+    Application.appLog.info('gateway', {event: 'account-login', account: {id: userPass.id, gid: account.gid, email: account.email, username: userPass.username}});
 
     return {
       account: {

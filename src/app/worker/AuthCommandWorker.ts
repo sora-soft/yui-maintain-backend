@@ -54,7 +54,7 @@ class AuthCommandWorker extends Worker {
         break;
       }
       default: {
-        throw new AppError(AppErrorCode.ERR_COMMAND_NOT_FOUND, `ERR_COMMAND_NOT_FOUND`);
+        throw new AppError(AppErrorCode.ERR_COMMAND_NOT_FOUND, 'ERR_COMMAND_NOT_FOUND');
       }
     }
     return true;
@@ -63,5 +63,5 @@ class AuthCommandWorker extends Worker {
   private options_: IAuthCommandWorkerOptions;
 }
 
-export {AuthCommandWorker}
+export {AuthCommandWorker};
 

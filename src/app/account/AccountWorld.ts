@@ -111,7 +111,7 @@ class AccountWorld {
     if (!permission.length)
       return false;
 
-    return permission.every((p) => { return p.permission === PermissionResult.ALLOW });
+    return permission.every((p) => { return p.permission === PermissionResult.ALLOW; });
   }
 
   @transaction(Com.businessDB)
@@ -137,8 +137,8 @@ class AccountWorld {
     return id;
   }
 
-  static async getAccountResetPassCode(id: string): Promise<{accountId: AccountId, code: string}> {
-    return Com.businessRedis.getJSON(RedisKey.resetPasswordCode(id));
+  static async getAccountResetPassCode(id: string) {
+    return Com.businessRedis.getJSON<{accountId: AccountId; code: string}>(RedisKey.resetPasswordCode(id));
   }
 
   static async createAccount(account: Pick<Account, 'email' | 'nickname' | 'gid'>, password: Pick<AccountPassword, 'username' | 'password'>) {
@@ -160,13 +160,13 @@ class AccountWorld {
       });
 
       if (usernameExisted)
-        throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, `ERR_DUPLICATE_USERNAME`);
+        throw new UserError(UserErrorCode.ERR_DUPLICATE_USERNAME, 'ERR_DUPLICATE_USERNAME');
 
       if (emailExisted)
-        throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, `ERR_DUPLICATE_EMAIL`);
+        throw new UserError(UserErrorCode.ERR_DUPLICATE_EMAIL, 'ERR_DUPLICATE_EMAIL');
 
       if (nicknameExisted)
-        throw new UserError(UserErrorCode.ERR_DUPLICATE_NICKNAME, `ERR_DUPLICATE_NICKNAME`);
+        throw new UserError(UserErrorCode.ERR_DUPLICATE_NICKNAME, 'ERR_DUPLICATE_NICKNAME');
 
       const newAccount = new Account({
         ...account,
@@ -195,11 +195,11 @@ class AccountWorld {
         return savedAcc;
       });
 
-      Application.appLog.info('account-world', { event: 'create-account', account: { id: createdAccount.id, gid: account.gid, email: account.email, nickname: account.nickname, username: password.username } });
+      Application.appLog.info('account-world', {event: 'create-account', account: {id: createdAccount.id, gid: account.gid, email: account.email, nickname: account.nickname, username: password.username}});
 
       return createdAccount;
     });
   }
 }
 
-export {AccountWorld}
+export {AccountWorld};

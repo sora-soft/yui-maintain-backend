@@ -11,4 +11,4 @@ export class BusinessDatabase1677687581407 implements MigrationInterface {
     await queryRunner.query('DROP INDEX `gid_idx` ON `account_token`');
     await queryRunner.query('DROP TABLE `account_token`');
   }
-};
+}

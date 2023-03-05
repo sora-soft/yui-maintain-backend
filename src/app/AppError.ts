@@ -9,4 +9,4 @@ class AppError extends ExError {
   }
 }
 
-export {AppError}
+export {AppError};

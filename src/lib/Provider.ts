@@ -16,4 +16,4 @@ class Pvd {
   static auth = new Provider<AuthHandler>(ServiceName.Auth);
 }
 
-export {Pvd}
+export {Pvd};

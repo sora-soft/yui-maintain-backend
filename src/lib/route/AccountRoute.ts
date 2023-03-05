@@ -1,6 +1,5 @@
-import {Request, Response, Route, RPCHandler, Service} from '@sora-soft/framework';
+import {Route} from '@sora-soft/framework';
 import {FindOptionsRelations} from '@sora-soft/database-component';
-import {AccountId} from '../../app/account/AccountType';
 import {Account, AccountToken} from '../../app/database/Account';
 import {UserErrorCode} from '../../app/ErrorCode';
 import {UserError} from '../../app/UserError';
@@ -13,11 +12,11 @@ interface IAccountOptions {
 
 class AccountRoute extends Route {
   static account(options?: IAccountOptions) {
-    return (target: AccountRoute, method: string, descriptor: PropertyDescriptor) => {
-      target.registerProvider(method, Account, async(route, body, request, response, connector) => {
-        const accountId: AccountId = request.getHeader(AuthRPCHeader.RPC_ACCOUNT_ID);
+    return (target: AccountRoute, method: string) => {
+      target.registerProvider(method, Account, async(route, body, request) => {
+        const accountId = request.getHeader<number>(AuthRPCHeader.RPC_ACCOUNT_ID);
         if (!accountId)
-          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
+          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
 
         const relations = options?.relations || {};
 
@@ -28,7 +27,7 @@ class AccountRoute extends Route {
           relations,
         });
         if (!account)
-          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
+          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
 
         return account;
       });
@@ -37,10 +36,10 @@ class AccountRoute extends Route {
 
   static token() {
     return (target: AccountRoute, method: string) => {
-      target.registerProvider(method, AccountToken, async(route, body, request, response, connector) => {
+      target.registerProvider(method, AccountToken, async(route, body, request) => {
         const session = request.getHeader<string>(ForwardRPCHeader.RPC_GATEWAY_SESSION);
         if (!session)
-          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
+          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
 
         const token = await Com.businessDB.manager.findOne(AccountToken, {
           where: {
@@ -48,12 +47,12 @@ class AccountRoute extends Route {
           },
         });
         if (!token)
-          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, `ERR_NOT_LOGIN`);
+          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
 
         return token;
       });
-    }
+    };
   }
 }
 
-export {AccountRoute}
+export {AccountRoute};

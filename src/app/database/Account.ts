@@ -5,7 +5,7 @@ import {AuthGroup} from './Auth';
 import {Timestamp} from './utility/Type';
 
 @Entity()
-@Index('username_idx', ['username'], { unique: true })
+@Index('username_idx', ['username'], {unique: true})
 export class AccountPassword {
   constructor(data?: Partial<AccountPassword>) {
     if (!data)
@@ -19,13 +19,13 @@ export class AccountPassword {
   @PrimaryColumn()
   id: AccountId;
 
-  @Column({ length: 64 })
+  @Column({length: 64})
   username: string;
 
-  @Column({ length: 128 })
+  @Column({length: 128})
   password: string;
 
-  @Column({ length: 64 })
+  @Column({length: 64})
   salt: string;
 }
 
@@ -60,8 +60,8 @@ export class AccountToken {
   name: 'user_account',
   engine: 'InnoDB AUTO_INCREMENT=1000',
 })
-@Index('nickname_idx', ['nickname'], { unique: true })
-@Index('email_idx', ['email'], { unique: true })
+@Index('nickname_idx', ['nickname'], {unique: true})
+@Index('email_idx', ['email'], {unique: true})
 export class Account {
   constructor(data?: Partial<Account>) {
     if (!data)
@@ -75,10 +75,10 @@ export class Account {
   @PrimaryGeneratedColumn()
   id: AccountId;
 
-  @Column({ length: 64 })
+  @Column({length: 64})
   nickname: string;
 
-  @Column({ length: 128 })
+  @Column({length: 128})
   @IsEmail()
   email: string;
 

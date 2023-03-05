@@ -1,7 +1,7 @@
 import {ExError} from '@sora-soft/framework';
 
 export enum AliCloudErrorCode {
-  ERR_SUB_NOT_LOADED = `ERR_SUB_NOT_LOADED`,
+  ERR_SUB_NOT_LOADED = 'ERR_SUB_NOT_LOADED',
 }
 
 class AliCloudError extends ExError {
@@ -13,4 +13,4 @@ class AliCloudError extends ExError {
 }
 
 
-export {AliCloudError}
+export {AliCloudError};

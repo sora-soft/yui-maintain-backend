@@ -1,4 +1,4 @@
-import {DatabaseComponent, IDatabaseComponentOptions, DataSource} from '@sora-soft/database-component';
+import {IDatabaseComponentOptions, DataSource, DatabaseComponent} from '@sora-soft/database-component';
 import {IWorkerOptions, Node, Runtime, Worker} from '@sora-soft/framework';
 import {ComponentName} from '../../lib/Com';
 import {Application} from '../Application';
@@ -7,11 +7,13 @@ import camelcase = require('camelcase');
 import fs = require('fs/promises');
 import path = require('path');
 import moment = require('moment');
-import mkdirp = require('mkdirp');
+import {mkdirp} from 'mkdirp';
 import {UserError} from '../UserError';
 import {AppErrorCode, UserErrorCode} from '../ErrorCode';
 import {AssertType, ValidateClass} from 'typescript-is';
 import {AppError} from '../AppError';
+import {ISoraConfig} from '../Types';
+
 
 export interface IDatabaseMigrateCommandWorkerOptions extends IWorkerOptions {
   components: ComponentName[];
@@ -40,16 +42,17 @@ class DatabaseMigrateCommandWorker extends Worker {
     switch (action) {
       case 'generate': {
         const projectPath = path.resolve(__dirname, '../../../');
-        const soraConfig = require(`${projectPath}/sora.json`);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const soraConfig = require(`${projectPath}/sora.json`) as ISoraConfig;
         const migrationPath = soraConfig.migration;
         for (const name of this.options_.components) {
-          const component = Runtime.getComponent(name) as DatabaseComponent;
+          const component: DatabaseComponent = Runtime.getComponent(name) ;
           if (!component)
             throw new AppError(AppErrorCode.ERR_COMPONENT_NOT_FOUND, `ERR_COMPONENT_NOT_FOUND, name=${name}`);
 
           const options = component.options as IDatabaseComponentOptions;
 
-          Application.appLog.info('worker.generate-migrate', { component: name });
+          Application.appLog.info('worker.generate-migrate', {component: name});
 
           const dataSource = new DataSource({
             ...options.database,
@@ -62,33 +65,15 @@ class DatabaseMigrateCommandWorker extends Worker {
           const upSqls: string[] = [];
           const downSqls: string[] = [];
 
-          // mysql is exceptional here because it uses ` character in to escape names in queries, that's why for mysql
-          // we are using simple quoted string instead of template string syntax
-          // if (dataSource.driver instanceof MysqlDriver) {
-          //   sqlInMemory.upQueries.forEach(query => {
-          //     upSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
-          //   });
-          //   sqlInMemory.downQueries.forEach(query => {
-          //     downSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
-          //   });
-          // } else {
-          //   sqlInMemory.upQueries.forEach(query => {
-          //     upSqls.push('    await queryRunner.query(`' + query.query.replace(new RegExp('`', 'g'), '\\`') + '`);');
-          //   });
-          //   sqlInMemory.downQueries.forEach(query => {
-          //     downSqls.push('    await queryRunner.query(`' + query.query.replace(new RegExp('`', 'g'), '\\`') + '`);');
-          //   });
-          // }
-
           sqlInMemory.upQueries.forEach(query => {
-            upSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
+            upSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp('\'', 'g'), '\\\'') + '\');');
           });
           sqlInMemory.downQueries.forEach(query => {
-            downSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp(`'`, 'g'), `\\'`) + '\');');
+            downSqls.push('    await queryRunner.query(\'' + query.query.replace(new RegExp('\'', 'g'), '\\\'') + '\');');
           });
 
           if (upSqls.length || downSqls.length) {
-            const className = camelcase(name, {pascalCase: true}) + Date.now();
+            const className = `${camelcase(name, {pascalCase: true})}${Date.now()}`;
             const file =
 `import {MigrationInterface, QueryRunner} from '@sora-soft/database-component';
 
@@ -100,8 +85,8 @@ ${upSqls.join('\n')}
   async down(queryRunner: QueryRunner): Promise<void> {
 ${downSqls.reverse().join('\n')}
   }
-};
-`
+}
+`;
             await mkdirp(path.resolve(projectPath, soraConfig.root, migrationPath, name));
             await fs.writeFile(path.resolve(projectPath, soraConfig.root, migrationPath, name, moment().format('YYYYMMDD') + className + '.ts'), file);
           }
@@ -113,10 +98,10 @@ ${downSqls.reverse().join('\n')}
       }
       case 'sync': {
         for (const name of this.options_.components) {
-          const component = Runtime.getComponent(name) as DatabaseComponent;
+          const component: DatabaseComponent = Runtime.getComponent(name) ;
           const options = component.options as IDatabaseComponentOptions;
 
-          Application.appLog.info('worker.database-migrate', { event: 'sync-database', component: name });
+          Application.appLog.info('worker.database-migrate', {event: 'sync-database', component: name});
           const dataSource = new DataSource({
             ...options.database,
             entities: component.entities,
@@ -132,19 +117,20 @@ ${downSqls.reverse().join('\n')}
       case 'migrate': {
         const [_, componentName] = commands;
         if (!componentName) {
-          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID`), 'Component name needed');
+          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, 'ERR_PARAMETERS_INVALID'), 'Component name needed');
           return false;
         }
 
-        const component = Runtime.getComponent(componentName) as DatabaseComponent;
+        const component: DatabaseComponent = Runtime.getComponent(componentName) ;
         if (!component) {
-          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID`), 'Component not found');
+          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, 'ERR_PARAMETERS_INVALID'), 'Component not found');
           return false;
         }
 
         const options = component.options as IDatabaseComponentOptions;
         const projectPath = path.resolve(__dirname, '../../../');
-        const soraConfig = require(`${projectPath}/sora.json`);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const soraConfig = require(`${projectPath}/sora.json`) as ISoraConfig;
         const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration);
 
         const files = await fs.readdir(path.join(migrationPath, componentName));
@@ -169,20 +155,21 @@ ${downSqls.reverse().join('\n')}
       case 'revert': {
         const [_, componentName] = commands;
         if (!componentName) {
-          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID`), 'Component name needed');
+          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, 'ERR_PARAMETERS_INVALID'), 'Component name needed');
           return false;
         }
 
-        const component = Runtime.getComponent(componentName) as DatabaseComponent;
+        const component: DatabaseComponent = Runtime.getComponent(componentName) ;
         if (!component) {
-          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID`), 'Component not found');
+          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, 'ERR_PARAMETERS_INVALID'), 'Component not found');
           return false;
         }
 
         const options = component.options as IDatabaseComponentOptions;
 
         const projectPath = path.resolve(__dirname, '../../../');
-        const soraConfig = require(`${projectPath}/sora.json`);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const soraConfig = require(`${projectPath}/sora.json`) as ISoraConfig;
         const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration, componentName);
 
         const dataSource = new DataSource({
@@ -204,7 +191,7 @@ ${downSqls.reverse().join('\n')}
 
       case 'drop': {
         const [_, componentName] = commands;
-        const component = Runtime.getComponent(componentName) as DatabaseComponent;
+        const component: DatabaseComponent = Runtime.getComponent(componentName) ;
         const options = component.options as IDatabaseComponentOptions;
 
         const dataSource = new DataSource({
@@ -226,4 +213,4 @@ ${downSqls.reverse().join('\n')}
   private options_: IDatabaseMigrateCommandWorkerOptions;
 }
 
-export {DatabaseMigrateCommandWorker}
+export {DatabaseMigrateCommandWorker};

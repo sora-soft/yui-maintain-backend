@@ -28,7 +28,7 @@ class AliCloudComponent extends Component {
 
   get pop() {
     if (!this.pop_)
-      throw new AliCloudError(AliCloudErrorCode.ERR_SUB_NOT_LOADED, `ERR_SUB_NOT_LOADED, module=pop`);
+      throw new AliCloudError(AliCloudErrorCode.ERR_SUB_NOT_LOADED, 'ERR_SUB_NOT_LOADED, module=pop');
 
     return this.pop_;
   }
@@ -41,4 +41,4 @@ class AliCloudComponent extends Component {
   private pop_: AliCloudPop;
 }
 
-export {AliCloudComponent}
+export {AliCloudComponent};

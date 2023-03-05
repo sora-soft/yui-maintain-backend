@@ -1,11 +1,9 @@
-import {DatabaseComponent, EntityTarget, FindManyOptions, FindOptionsOrder, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition, FindOptionsOrderValue} from '@sora-soft/database-component';
-import {Route, Service, Request} from '@sora-soft/framework';
+import {DatabaseComponent, FindManyOptions, FindOptionsOrder, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition, FindOptionsOrderValue} from '@sora-soft/database-component';
+import {ExError, Route, Service} from '@sora-soft/framework';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {AppErrorCode, UserErrorCode} from '../ErrorCode';
 import {UserError} from '../UserError';
 import {validate} from 'class-validator';
-import {AccountWorld} from '../account/AccountWorld';
-import {AuthGroupId} from '../account/AccountType';
 import {AppError} from '../AppError';
 import {Util} from '../../lib/Utility';
 import {AuthRoute} from '../../lib/route/AuthRoute';
@@ -17,7 +15,7 @@ type EntityValueType<T> = {
 export interface IRestfulHandlerCom<T = unknown> {
   name: string;
   com: DatabaseComponent;
-  entity: EntityTarget<T>;
+  entity: new () => T;
   select?: string[];
 }
 
@@ -131,7 +129,7 @@ class RestfulHandler extends AuthRoute {
     return {
       list,
       total,
-    } as { list: Array<T>, total: number }
+    } as { list: Array<T>; total: number };
   }
 
   @Route.method
@@ -141,7 +139,7 @@ class RestfulHandler extends AuthRoute {
 
     const data = await this.installData<T>(entity, body.data);
 
-    const result = await com.manager.insert(entity, data as any).catch(err => {
+    const result = await com.manager.insert(entity, data).catch((err: ExError) => {
       throw new AppError(AppErrorCode.ERR_DATABASE, err.message);
     });
 
@@ -159,7 +157,7 @@ class RestfulHandler extends AuthRoute {
       list.push(data);
     }
 
-    const result = await com.manager.save(list).catch(err => {
+    const result = await com.manager.save(list).catch((err: ExError) => {
       throw new AppError(AppErrorCode.ERR_DATABASE, err.message);
     });
 
@@ -218,10 +216,10 @@ class RestfulHandler extends AuthRoute {
     return pair as IRestfulHandlerCom<T>;
   }
 
-  private async installData<T>(entity: any, data: any) {
-    const result = new entity();
+  private async installData<T>(entity: new () => T, data: Object) {
+    const result = new entity() ;
     for (const [key, value] of Object.entries(data)) {
-      result[key] = value;
+      result[key as keyof T] = value as T[keyof T];
     }
 
     const errors = await validate(data);
@@ -229,11 +227,11 @@ class RestfulHandler extends AuthRoute {
       throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${errors.map(e => e.property).join(',')}]`);
     }
 
-    return result as T;
+    return result ;
   }
 
   private dbMap_: Map<string, IRestfulHandlerCom>;
 }
 
 
-export {RestfulHandler}
+export {RestfulHandler};

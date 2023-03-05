@@ -8,10 +8,10 @@ class AccountLock {
       return Com.etcd.lock(EtcdKey.accountRegisterEmailLock(type, email), async () => {
         return Com.etcd.lock(EtcdKey.accountRegisterNicknameLock(type, nickname), async () => {
           return callback();
-        })
+        });
       });
     });
   }
 }
 
-export {AccountLock}
+export {AccountLock};
