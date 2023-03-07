@@ -90,6 +90,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
             // 转发至其他服务
             const provider = route.getProvider(service);
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             const res: Response<unknown> = await provider.rpc(route.service.id)[method](request.payload, {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
@@ -130,12 +131,13 @@ class ForwardRoute<T extends Service = Service> extends Route {
             await route.callNotify(notify.method, notify, connector).catch((err: ExError) => {
               Runtime.frameLogger.error('forward-route', err, {event: 'notify-handler', error: Logger.errorMessage(err), service: route.service.name, method: notify.method, request: notify.payload});
             });
-            Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method,duration: Date.now() - startTime});
+            Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method, duration: Date.now() - startTime});
             return null;
           } else {
             // 转发至其他服务
             const provider = route.getProvider(service );
 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call
             await provider.notify(route.service.id)[method](notify.payload, {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,

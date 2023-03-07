@@ -199,6 +199,10 @@ module.exports = {
     'jsdoc/check-alignment': 'error',
     'jsdoc/check-indentation': 'error',
     'jsdoc/newline-after-description': 'error',
+    'comma-spacing': ['error', {
+      'before': false,
+      'after': true,
+    }],
     'max-classes-per-file': 'off',
     'indent': ['error', 2,
       {

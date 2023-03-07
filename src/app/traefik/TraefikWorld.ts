@@ -12,9 +12,16 @@ class TraefikWorld {
           await Com.etcd.lease.put(`${prefix}/${protocol}/services/${name}/loadBalancer/passHostHeader`).value('true').exec();
           let serverUrl = '';
           switch (protocol) {
-            case 'http':
             case 'tcp':
               serverUrl = listener.info.endpoint;
+              break;
+            case 'http':
+              if (listener.info.protocol === 'ws') {
+                const url = new URL(listener.info.endpoint);
+                serverUrl = `http://${url.host}`;
+              } else {
+                serverUrl = listener.info.endpoint;
+              }
               break;
           }
           await Com.etcd.lease.put(loadBalancerKey).value(serverUrl).exec();

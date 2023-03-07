@@ -23,6 +23,12 @@ services:
       host: '<host>'
     traefik:
       prefix: traefik
+    websocketListener:
+      portRange:
+        - 7080
+        - 7090
+      host: '<host>'
+      entryPath: '/ws'
 
   restful:
     tcpListener:
