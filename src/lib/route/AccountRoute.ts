@@ -4,7 +4,7 @@ import {Account, AccountToken} from '../../app/database/Account';
 import {UserErrorCode} from '../../app/ErrorCode';
 import {UserError} from '../../app/UserError';
 import {Com} from '../Com';
-import {AuthRPCHeader, ForwardRPCHeader} from '../Const';
+import {AuthRPCHeader} from '../Const';
 
 interface IAccountOptions {
   relations?: FindOptionsRelations<Pick<Account, 'userPass'>>;
@@ -37,7 +37,7 @@ class AccountRoute extends Route {
   static token() {
     return (target: AccountRoute, method: string) => {
       target.registerProvider(method, AccountToken, async(route, body, request) => {
-        const session = request.getHeader<string>(ForwardRPCHeader.RPC_GATEWAY_SESSION);
+        const session = request.getHeader<string>(AuthRPCHeader.RPC_AUTHORIZATION);
         if (!session)
           throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
 

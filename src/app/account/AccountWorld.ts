@@ -69,7 +69,7 @@ class AccountWorld {
 
   @transaction(Com.businessDB)
   static async deleteAccountSession(session: string, manager?: EntityManager) {
-    return manager!.delete(AccountToken, {token: session});
+    return manager!.delete(AccountToken, {session});
   }
 
   @transaction(Com.businessDB)

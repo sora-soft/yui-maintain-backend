@@ -1,7 +1,7 @@
-import {Request, Route, RPCHeader, UnixTime} from '@sora-soft/framework';
+import {Route, UnixTime} from '@sora-soft/framework';
 import {Com} from '../../lib/Com';
 import {Account, AccountPassword, AccountToken} from '../database/Account';
-import {AppErrorCode, UserErrorCode} from '../ErrorCode';
+import {UserErrorCode} from '../ErrorCode';
 import {ValidateClass, AssertType} from 'typescript-is';
 import {UserError} from '../UserError';
 import {AccountWorld} from '../account/AccountWorld';
@@ -11,7 +11,7 @@ import {Application} from '../Application';
 import {Hash} from '../../lib/Utility';
 import {AuthPermission} from '../database/Auth';
 import {AccountRoute} from '../../lib/route/AccountRoute';
-import {AppError} from '../AppError';
+import {v4 as uuid} from 'uuid';
 
 export interface IRegisterReq {
   username: string;
@@ -50,7 +50,7 @@ class GatewayHandler extends ForwardRoute {
   }
 
   @Route.method
-  async login(@AssertType() body: ILoginReq, request: Request<ILoginReq>) {
+  async login(@AssertType() body: ILoginReq) {
     const userPass = await Com.businessDB.manager.findOne(AccountPassword, {
       where: {
         username: body.username,
@@ -64,10 +64,6 @@ class GatewayHandler extends ForwardRoute {
     if (userPass.password !== password)
       throw new UserError(UserErrorCode.ERR_WRONG_PASSWORD, 'ERR_WRONG_PASSWORD');
 
-    const session = request.getHeader<string>(RPCHeader.RPC_SESSION_HEADER);
-    if (!session)
-      throw new AppError(AppErrorCode.ERR_NO_SESSION, 'ERR_NO_SESSION');
-
     const account = await Com.businessDB.manager.findOneBy(Account, {id: userPass.id});
 
     if (!account)
@@ -76,8 +72,9 @@ class GatewayHandler extends ForwardRoute {
     if (account.disabled)
       throw new UserError(UserErrorCode.ERR_ACCOUNT_DISABLED, 'ERR_ACCOUNT_DISABLED');
 
+    const token = uuid();
     const ttl = body.remember ? UnixTime.day(5) : UnixTime.hour(8);
-    await AccountWorld.setAccountSession(session, account, ttl);
+    await AccountWorld.setAccountSession(token, account, ttl);
 
     const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
@@ -95,7 +92,8 @@ class GatewayHandler extends ForwardRoute {
         email: account.email,
         nickname: account.nickname,
       },
-      permissions
+      permissions,
+      token,
     };
   }
 
@@ -103,7 +101,8 @@ class GatewayHandler extends ForwardRoute {
   @AccountRoute.account({
     relations: {userPass: true}
   })
-  async info(body: void, account: Account) {
+  @AccountRoute.token()
+  async info(body: void, account: Account, token: AccountToken) {
     const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
       where: {
@@ -118,7 +117,8 @@ class GatewayHandler extends ForwardRoute {
         email: account.email,
         nickname: account.nickname,
       },
-      permissions
+      permissions,
+      token: token.session,
     };
   }
 
