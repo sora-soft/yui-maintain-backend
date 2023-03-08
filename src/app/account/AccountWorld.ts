@@ -59,7 +59,7 @@ class AccountWorld {
 
   @transaction(Com.businessDB)
   static async setAccountSession(session: string, account: Account, expire: number = UnixTime.hour(8), manager?: EntityManager) {
-    await manager!.save(new AccountToken({
+    return manager!.save(new AccountToken({
       session,
       accountId: account.id,
       expireAt: UnixTime.now() + expire,

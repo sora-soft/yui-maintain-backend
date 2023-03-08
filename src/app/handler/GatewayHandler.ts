@@ -74,7 +74,7 @@ class GatewayHandler extends ForwardRoute {
 
     const token = uuid();
     const ttl = body.remember ? UnixTime.day(5) : UnixTime.hour(8);
-    await AccountWorld.setAccountSession(token, account, ttl);
+    const newToken = await AccountWorld.setAccountSession(token, account, ttl);
 
     const permissions = await Com.businessDB.manager.find(AuthPermission, {
       select: ['name', 'permission'],
@@ -93,7 +93,10 @@ class GatewayHandler extends ForwardRoute {
         nickname: account.nickname,
       },
       permissions,
-      token,
+      authorization: {
+        token,
+        expireAt: newToken.expireAt,
+      },
     };
   }
 
@@ -118,7 +121,10 @@ class GatewayHandler extends ForwardRoute {
         nickname: account.nickname,
       },
       permissions,
-      token: token.session,
+      authorization: {
+        token: token.session,
+        expireAt: token.expireAt,
+      },
     };
   }
 
