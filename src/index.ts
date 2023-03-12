@@ -8,9 +8,9 @@ import {AppError} from './app/AppError';
 import {AppErrorCode} from './app/ErrorCode';
 
 export interface IStartupOptions {
-  config: string;
-  name?: string;
-  arguments?: string[];
+  readonly config: string;
+  readonly name?: string;
+  readonly arguments?: string[];
 }
 
 export const container = async (options: IStartupOptions) => {

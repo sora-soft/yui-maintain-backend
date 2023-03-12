@@ -1,5 +1,5 @@
 import {ETCDDiscovery} from '@sora-soft/etcd-discovery';
-import {ConsoleOutput, ExError, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, Logger, LogLevel, Node, Runtime} from '@sora-soft/framework';
+import {AbortError, ConsoleOutput, ExError, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, Logger, LogLevel, Node, Runtime} from '@sora-soft/framework';
 import {AppLogger} from './AppLogger';
 import {Pvd} from '../lib/Provider';
 import {ServiceRegister} from './service/common/ServiceRegister';
@@ -20,21 +20,21 @@ export interface IApplicationLoggerOptions {
 }
 
 export interface IApplicationOptions {
-  debug: boolean;
-  logger: IApplicationLoggerOptions;
-  discovery: {
-    etcdComponentName: string;
-    scope: string;
+  readonly debug: boolean;
+  readonly logger: IApplicationLoggerOptions;
+  readonly discovery: {
+    readonly etcdComponentName: string;
+    readonly scope: string;
   };
-  node: INodeOptions;
-  services?: {
-    [name: string]: IServiceOptions;
+  readonly node: INodeOptions;
+  readonly services?: {
+    readonly [name: string]: IServiceOptions;
   };
-  workers?: {
-    [name: string]: IWorkerOptions;
+  readonly workers?: {
+    readonly [name: string]: IWorkerOptions;
   };
-  components?: {
-    [name: string]: IComponentOptions;
+  readonly components?: {
+    readonly [name: string]: IComponentOptions;
   };
 }
 
@@ -91,10 +91,13 @@ class Application {
         const service = Node.serviceFactory(name, serviceConfig);
         if (!service) {
           const err = new AppError(AppErrorCode.ERR_SERVICE_NOT_CREATED, `ERR_SERVICE_NOT_CREATED, service=${name}`);
-          this.appLog.error('application', err);
+          this.appLog.error('application', err, {event: 'create-service-error', error: Logger.errorMessage(err)});
           continue;
         }
         Runtime.installService(service).catch((err: ExError) => {
+          if (err instanceof AbortError) {
+            return;
+          }
           this.appLog.error('application', err, {event: 'install-service-error', error: Logger.errorMessage(err)});
         });
       }
@@ -105,10 +108,13 @@ class Application {
         const worker = Node.workerFactory(name, workerConfig);
         if (!worker) {
           const err = new AppError(AppErrorCode.ERR_WORKER_NOT_CREATED, `ERR_WORKER_NOT_CREATED, worker=${name}`);
-          this.appLog.error('application', err);
+          this.appLog.error('application', err, {event: 'create-worker-error', error: Logger.errorMessage(err)});
           continue;
         }
         Runtime.installWorker(worker).catch((err: ExError) => {
+          if (err instanceof AbortError) {
+            return;
+          }
           this.appLog.error('application', err, {event: 'install-worker-error', error: Logger.errorMessage(err)});
         });
       }

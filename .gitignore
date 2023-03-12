@@ -122,7 +122,8 @@ src/test.ts
 TODO
 
 .gitconfig
-run/
-!run/config.example.yml
-
+!run/*
+run/*
+!run/config.template.yml
+!run/config-command.template.yml
 /dist*/
