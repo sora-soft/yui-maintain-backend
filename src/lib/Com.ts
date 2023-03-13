@@ -10,6 +10,7 @@ export enum ComponentName {
   BusinessRedis = 'business-redis',
   BusinessDB = 'business-database',
   Etcd = 'etcd',
+  TargetEtcd = 'target-etcd',
   AliCloud = 'ali-cloud',
 }
 
@@ -18,6 +19,7 @@ class Com {
     Runtime.registerComponent(ComponentName.BusinessRedis, this.businessRedis);
     Runtime.registerComponent(ComponentName.BusinessDB, this.businessDB);
     Runtime.registerComponent(ComponentName.Etcd, this.etcd);
+    Runtime.registerComponent(ComponentName.TargetEtcd, this.targetEtcd);
     Runtime.registerComponent(ComponentName.AliCloud, this.aliCloud);
   }
 
@@ -31,6 +33,7 @@ class Com {
 
   static aliCloud = new AliCloudComponent();
 
+  static targetEtcd = new EtcdComponent();
 }
 
 export {Com};

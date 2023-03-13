@@ -36,13 +36,14 @@ class HttpGatewayService extends Service {
 
   protected async startup(ctx: Context) {
     await this.connectComponents([Com.businessDB, Com.businessRedis, Com.etcd, Com.aliCloud], ctx);
-    await this.registerProviders([Pvd.restful, Pvd.auth], ctx);
+    await this.registerProviders([Pvd.restful, Pvd.auth, Pvd.monitor], ctx);
 
     await AccountWorld.startup();
 
     const route = new GatewayHandler(this, {
       [ServiceName.Restful]: Pvd.restful,
       [ServiceName.Auth]: Pvd.auth,
+      [ServiceName.Monitor]: Pvd.monitor,
     });
     const koa = new Koa();
     const httpListener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.gatewayOptions_.httpListener.labels);

@@ -27,7 +27,7 @@ class AuthService extends Service {
   }
 
   protected async startup(ctx: Context) {
-    await this.connectComponent(Com.businessDB, ctx);
+    await this.connectComponents([Com.businessDB, Com.businessRedis], ctx);
 
     const route = new AuthHandler(this);
 

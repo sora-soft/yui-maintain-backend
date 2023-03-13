@@ -16,6 +16,8 @@
 #define(aliKeyId,string,alicloud sdk access key id?)
 #define(aliKeySecret,password,alicloud sdk access key secret?)
 #define(aliPopAccountName,string,alicloud pop account name?)
+#define(targetEtcdHost,string,target cluster etcd host?)
+#define(targetScope,string,target cluster scope?)
 
 debug: true
 discovery:
@@ -68,6 +70,17 @@ services:
       host: $(host)
       exposeHost: $(exposeHost)
 
+  monitor:
+    tcpListener:
+      portRange:
+        - $(portRangeMin)
+        - $(portRangeMax)
+      host: $(host)
+      exposeHost: $(exposeHost)
+    target:
+      etcdComponentName: 'target-etcd'
+      scope: $(targetScope)
+
 components:
   business-redis:
     host: $(redisHost)
@@ -86,8 +99,14 @@ components:
     etcd:
       hosts:
       - $(etcdHost)
-    ttl: 60
+    ttl: 10
     prefix: $(projectScope)
+  target-etcd:
+    etcd:
+      hosts:
+      - $(targetEtcdHost)
+    ttl: 10
+    prefix: $(targetScope)
   ali-cloud:
     accessKeyId*: $(aliKeyId)
     accessKeySecret*: $(aliKeySecret)
