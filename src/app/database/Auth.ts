@@ -1,10 +1,10 @@
-import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component';
+import {Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component/typeorm';
 import {UnixTime} from '@sora-soft/framework';
-import {AuthGroupId, PermissionResult} from '../account/AccountType';
-import {Timestamp} from './utility/Type';
+import {AuthGroupId, PermissionResult} from '../account/AccountType.js';
+import {Timestamp} from './utility/Type.js';
 
 @Entity({
-  engine: 'InnoDB AUTO_INCREMENT=1000'
+  engine: 'InnoDB AUTO_INCREMENT=1000',
 })
 export class AuthGroup {
   constructor(data?: Partial<AuthGroup>) {
@@ -20,7 +20,7 @@ export class AuthGroup {
   id: AuthGroupId;
 
   @Column({
-    length: 64
+    length: 64,
   })
   name: string;
 
@@ -37,7 +37,7 @@ export class AuthGroup {
     transformer: {
       to: (value?: number) => (value ? value : UnixTime.now()),
       from: (value?: number) => value,
-    }
+    },
   })
   createTime: Timestamp;
 }
@@ -57,7 +57,7 @@ export class AuthPermission {
   gid: AuthGroupId;
 
   @PrimaryColumn({
-    length: 64
+    length: 64,
   })
   name: string;
 

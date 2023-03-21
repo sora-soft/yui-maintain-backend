@@ -1,16 +1,16 @@
 import {Route, UnixTime} from '@sora-soft/framework';
-import {Com} from '../../lib/Com';
-import {Account, AccountPassword, AccountToken} from '../database/Account';
-import {UserErrorCode} from '../ErrorCode';
-import {ValidateClass, AssertType} from 'typescript-is';
-import {UserError} from '../UserError';
-import {AccountWorld} from '../account/AccountWorld';
-import {ForwardRoute} from '../../lib/route/ForwardRoute';
-import {UserGroupId} from '../account/AccountType';
-import {Application} from '../Application';
-import {Hash} from '../../lib/Utility';
-import {AuthPermission} from '../database/Auth';
-import {AccountRoute} from '../../lib/route/AccountRoute';
+import {Com} from '../../lib/Com.js';
+import {Account, AccountPassword, AccountToken} from '../database/Account.js';
+import {UserErrorCode} from '../ErrorCode.js';
+import {ValidateClass, AssertType} from '@sora-soft/type-guard';
+import {UserError} from '../UserError.js';
+import {AccountWorld} from '../account/AccountWorld.js';
+import {ForwardRoute} from '../../lib/route/ForwardRoute.js';
+import {UserGroupId} from '../account/AccountType.js';
+import {Application} from '../Application.js';
+import {Hash} from '../../lib/Utility.js';
+import {AuthPermission} from '../database/Auth.js';
+import {AccountRoute} from '../../lib/route/AccountRoute.js';
 import {v4 as uuid} from 'uuid';
 
 export interface IRegisterReq {
@@ -80,7 +80,7 @@ class GatewayHandler extends ForwardRoute {
       select: ['name', 'permission'],
       where: {
         gid: account.gid,
-      }
+      },
     });
 
     Application.appLog.info('gateway', {event: 'account-login', account: {id: userPass.id, gid: account.gid, email: account.email, username: userPass.username}});
@@ -102,7 +102,7 @@ class GatewayHandler extends ForwardRoute {
 
   @Route.method
   @AccountRoute.account({
-    relations: {userPass: true}
+    relations: {userPass: true},
   })
   @AccountRoute.token()
   async info(body: void, account: Account, token: AccountToken) {

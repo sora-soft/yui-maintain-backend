@@ -1,4 +1,4 @@
-import {AuthGroup, AuthPermission} from '../database/Auth';
+import {AuthGroup, AuthPermission} from '../database/Auth.js';
 
 export type AccountId = number;
 
@@ -34,7 +34,7 @@ export const DefaultGroupList: Pick<AuthGroup, 'id' | 'name' | 'protected'>[] = 
     id: GuestGroupId,
     name: 'Guest',
     protected: true,
-  }
+  },
 ];
 
 // 默认游客权限
@@ -42,6 +42,6 @@ export const DefaultPermissionList: Pick<AuthPermission, 'gid' | 'name' | 'permi
   {
     gid: RootGroupId,
     name: 'root',
-    permission: PermissionResult.ALLOW
-  }
+    permission: PermissionResult.ALLOW,
+  },
 ];

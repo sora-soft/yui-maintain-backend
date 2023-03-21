@@ -1,6 +1,6 @@
-import {HttpGatewayService} from '../HttpGatewayService';
-import {RestfulService} from '../RestfulService';
-import {AuthService} from '../AuthService';
+import {HttpGatewayService} from '../HttpGatewayService.js';
+import {RestfulService} from '../RestfulService.js';
+import {AuthService} from '../AuthService.js';
 
 class ServiceRegister {
   static init() {

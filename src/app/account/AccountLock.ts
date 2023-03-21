@@ -1,6 +1,6 @@
-import {Com} from '../../lib/Com';
-import {AccountType} from '../../lib/Enum';
-import {EtcdKey} from '../Keys';
+import {Com} from '../../lib/Com.js';
+import {AccountType} from '../../lib/Enum.js';
+import {EtcdKey} from '../Keys.js';
 
 class AccountLock {
   static registerLock<T>(type: AccountType, username: string, email: string, nickname: string, callback: () => Promise<T>): Promise<T> {

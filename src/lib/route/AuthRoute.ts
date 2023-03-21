@@ -1,15 +1,15 @@
 import {Route, Service} from '@sora-soft/framework';
-import {AuthGroupId, GuestGroupId} from '../../app/account/AccountType';
-import {AccountWorld} from '../../app/account/AccountWorld';
-import {UserErrorCode} from '../../app/ErrorCode';
-import {IRestfulReq} from '../../app/handler/RestfulHandler';
-import {UserError} from '../../app/UserError';
-import {AuthRPCHeader} from '../Const';
+import {AuthGroupId, GuestGroupId} from '../../app/account/AccountType.js';
+import {AccountWorld} from '../../app/account/AccountWorld.js';
+import {UserErrorCode} from '../../app/ErrorCode.js';
+import {IRestfulReq} from '../../app/handler/RestfulHandler.js';
+import {UserError} from '../../app/UserError.js';
+import {AuthRPCHeader} from '../Const.js';
 
 class AuthRoute<T extends Service = Service> extends Route {
   static auth(authName?: string) {
     return (target: AuthRoute, method: string) => {
-      target.registerMiddleware<AuthRoute>(method, async (route, body, request) => {
+      Route.registerMiddleware<AuthRoute>(target, method, async (route, body, request) => {
         const checkAuthName = [route.service.name, authName || method].join('/');
 
         const gid = request.getHeader<AuthGroupId>(AuthRPCHeader.RPC_AUTH_GID);
@@ -30,7 +30,7 @@ class AuthRoute<T extends Service = Service> extends Route {
   }
 
   static logined(target: AuthRoute, method: string) {
-    target.registerMiddleware(method, async (route, body, request) => {
+    Route.registerMiddleware(target, method, async (route, body, request) => {
       const gid = request.getHeader<AuthGroupId>(AuthRPCHeader.RPC_AUTH_GID);
       if (!gid || gid === GuestGroupId) {
         throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
@@ -41,7 +41,7 @@ class AuthRoute<T extends Service = Service> extends Route {
 
   static restful(authName?: string) {
     return (target: AuthRoute, method: string) => {
-      target.registerMiddleware<AuthRoute>(method, async (route, body: IRestfulReq, request) => {
+      Route.registerMiddleware<AuthRoute>(target, method, async (route, body: IRestfulReq, request) => {
         const db = body.db;
         const checkAuthName = [route.service.name, authName || method, db].join('/');
 

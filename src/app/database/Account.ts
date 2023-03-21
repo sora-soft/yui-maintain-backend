@@ -1,8 +1,8 @@
-import {Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component';
+import {Column, Entity, Index, JoinColumn, ManyToOne, OneToOne, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component/typeorm';
 import {IsEmail} from 'class-validator';
-import {AccountId, AuthGroupId} from '../account/AccountType';
-import {AuthGroup} from './Auth';
-import {Timestamp} from './utility/Type';
+import {AccountId, AuthGroupId} from '../account/AccountType.js';
+import {AuthGroup} from './Auth.js';
+import {Timestamp} from './utility/Type.js';
 
 @Entity()
 @Index('username_idx', ['username'], {unique: true})

@@ -1,16 +1,16 @@
 import {Component, IComponentOptions} from '@sora-soft/framework';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {AliCloudError, AliCloudErrorCode} from './AliCloudError';
-import {AliCloudPop, IAliCloudPopConfig} from './AliCloudPop';
-import {IAliCloudCommonConfig} from './AliCloudType';
+import {TypeGuard} from '@sora-soft/type-guard';
+import {AliCloudError, AliCloudErrorCode} from './AliCloudError.js';
+import {AliCloudPop, IAliCloudPopConfig} from './AliCloudPop.js';
+import {IAliCloudCommonConfig} from './AliCloudType.js';
 
 export interface IAliCloudComponentOptions extends IComponentOptions, IAliCloudCommonConfig {
   pop?: IAliCloudPopConfig;
 }
 
-@ValidateClass()
 class AliCloudComponent extends Component {
-  protected setOptions(@AssertType() options: IAliCloudComponentOptions) {
+  protected setOptions(options: IAliCloudComponentOptions) {
+    TypeGuard.assertType<IAliCloudComponentOptions>(options);
     this.aliCloudOptions_ = options;
   }
 

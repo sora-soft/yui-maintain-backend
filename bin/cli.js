@@ -1,11 +1,8 @@
 #!/usr/bin/env node
+import program from 'commander';
+import path from 'path';
+import {container, server, command} from '../dist/index.js';
 
-const program = require('commander');
-const {container, server, command} = require('../');
-const path = require('path');
-
-// console.log(Commander);
-// const program = new Commander();
 program
   .command('run [mode]')
   .requiredOption('-c, --config <config-file>', 'url to load config file')
@@ -17,12 +14,12 @@ program
     switch (mode) {
       case 'container':
         container({
-          config: options.config
+          config: options.config,
         });
         break;
       case 'server':
         server({
-          config: options.config
+          config: options.config,
         });
         break;
       case 'command':
@@ -46,7 +43,7 @@ program
     command({
       config: options.config,
       name: options.workerName,
-      arguments: args
+      arguments: args,
     });
   });
 

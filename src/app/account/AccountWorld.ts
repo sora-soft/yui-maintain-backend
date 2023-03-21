@@ -1,19 +1,19 @@
-import {Hash, Random} from '../../lib/Utility';
-import {Com} from '../../lib/Com';
-import {Account, AccountPassword, AccountToken} from '../database/Account';
-import {AuthGroup, AuthPermission} from '../database/Auth';
-import {UserErrorCode} from '../ErrorCode';
-import {RedisKey} from '../Keys';
-import {UserError} from '../UserError';
-import {AccountId, AuthGroupId, DefaultGroupList, DefaultPermissionList, PermissionResult, RootGroupId} from './AccountType';
+import {Hash, Random} from '../../lib/Utility.js';
+import {Com} from '../../lib/Com.js';
+import {Account, AccountPassword, AccountToken} from '../database/Account.js';
+import {AuthGroup, AuthPermission} from '../database/Auth.js';
+import {UserErrorCode} from '../ErrorCode.js';
+import {RedisKey} from '../Keys.js';
+import {UserError} from '../UserError.js';
+import {AccountId, AuthGroupId, DefaultGroupList, DefaultPermissionList, PermissionResult, RootGroupId} from './AccountType.js';
 import {validate} from 'class-validator';
-import {Application} from '../Application';
-import {AccountType} from '../../lib/Enum';
-import {AccountLock} from './AccountLock';
-import {ForgetPasswordEmail} from './AccountEmail';
+import {Application} from '../Application.js';
+import {AccountType} from '../../lib/Enum.js';
+import {AccountLock} from './AccountLock.js';
+import {ForgetPasswordEmail} from './AccountEmail.js';
 import {NodeTime, UnixTime} from '@sora-soft/framework';
-import {EntityManager, LessThan, Not, MoreThan} from '@sora-soft/database-component';
-import {transaction} from '../database/utility/Decorators';
+import {EntityManager, LessThan, Not, MoreThan} from '@sora-soft/database-component/typeorm';
+import {transaction} from '../database/utility/Decorators.js';
 
 class AccountWorld {
   static async startup() {
@@ -53,7 +53,7 @@ class AccountWorld {
   static async getAccountSession(session: string): Promise<AccountToken | null> {
     return Com.businessDB.manager.findOneBy(AccountToken, {
       session,
-      expireAt: MoreThan(UnixTime.now())
+      expireAt: MoreThan(UnixTime.now()),
     });
   }
 
@@ -151,12 +151,12 @@ class AccountWorld {
       const usernameExisted = await Com.businessDB.manager.count(AccountPassword, {
         where: {
           username: password.username,
-        }
+        },
       });
       const nicknameExisted = await Com.businessDB.manager.count(Account, {
         where: {
-          nickname: account.nickname
-        }
+          nickname: account.nickname,
+        },
       });
 
       if (usernameExisted)

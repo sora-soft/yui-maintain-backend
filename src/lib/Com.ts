@@ -1,9 +1,9 @@
 import {RedisComponent} from '@sora-soft/redis-component';
 import {DatabaseComponent} from '@sora-soft/database-component';
-import {Account, AccountPassword, AccountToken} from '../app/database/Account';
+import {Account, AccountPassword, AccountToken} from '../app/database/Account.js';
 import {EtcdComponent} from '@sora-soft/etcd-component';
-import {AuthGroup, AuthPermission} from '../app/database/Auth';
-import {AliCloudComponent} from '../com/alicloud/AliCloudComponent';
+import {AuthGroup, AuthPermission} from '../app/database/Auth.js';
+import {AliCloudComponent} from '../com/alicloud/AliCloudComponent.js';
 import {Runtime} from '@sora-soft/framework';
 
 export enum ComponentName {

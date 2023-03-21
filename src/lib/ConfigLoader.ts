@@ -1,14 +1,15 @@
-import {ConfigFileType} from './Enum';
+import {ConfigFileType} from './Enum.js';
 import fs = require('fs/promises');
 import url = require('url');
 import util = require('util');
 import yaml = require('js-yaml');
-import axios, {AxiosResponse} from 'axios';
-import {AppError} from '../app/AppError';
-import {AppErrorCode} from '../app/ErrorCode';
+import {AxiosResponse} from 'axios';
+import axios from 'axios';
+import {AppError} from '../app/AppError.js';
+import {AppErrorCode} from '../app/ErrorCode.js';
 import path = require('path');
 import process = require('process');
-import {Util} from './Utility';
+import {Util} from './Utility.js';
 
 const CONFIG_MASK = '***';
 const PRIVATE_TOKEN = '*';
@@ -29,7 +30,7 @@ class ConfigLoader<T extends {}> {
   }
 
   async readURL(target: string) {
-    const response = await axios.get<unknown, AxiosResponse<{error: unknown}>>(target);
+    const response = await axios.default.get<unknown, AxiosResponse<{error: unknown}>>(target);
     if (response.status === 200 && !response.data.error) {
       return response.data as unknown as T;
     }
@@ -163,7 +164,7 @@ class ConfigLoader<T extends {}> {
         } else {
           return Object.getOwnPropertyDescriptor(target, property);
         }
-      }
+      },
     });
 
     return proxy;

@@ -1,17 +1,17 @@
 import {Route} from '@sora-soft/framework';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {Com} from '../../lib/Com';
-import {AccountRoute} from '../../lib/route/AccountRoute';
-import {AuthRoute} from '../../lib/route/AuthRoute';
-import {Random, Util} from '../../lib/Utility';
-import {AccountId, AuthGroupId, PermissionResult} from '../account/AccountType';
-import {AccountWorld} from '../account/AccountWorld';
-import {Application} from '../Application';
-import {Account, AccountToken} from '../database/Account';
-import {AuthGroup, AuthPermission} from '../database/Auth';
-import {UserErrorCode} from '../ErrorCode';
-import {RedisKey} from '../Keys';
-import {UserError} from '../UserError';
+import {AssertType, ValidateClass} from '@sora-soft/type-guard';
+import {Com} from '../../lib/Com.js';
+import {AccountRoute} from '../../lib/route/AccountRoute.js';
+import {AuthRoute} from '../../lib/route/AuthRoute.js';
+import {Random, Util} from '../../lib/Utility.js';
+import {AccountId, AuthGroupId, PermissionResult} from '../account/AccountType.js';
+import {AccountWorld} from '../account/AccountWorld.js';
+import {Application} from '../Application.js';
+import {Account, AccountToken} from '../database/Account.js';
+import {AuthGroup, AuthPermission} from '../database/Auth.js';
+import {UserErrorCode} from '../ErrorCode.js';
+import {RedisKey} from '../Keys.js';
+import {UserError} from '../UserError.js';
 
 export interface IReqUpdatePermission {
   gid: AuthGroupId;
@@ -72,7 +72,7 @@ export interface IReqFetchAccessKey {
 @ValidateClass()
 class AuthHandler extends AuthRoute {
   @Route.method
-  async fetchAccountList(body: void) {
+  async fetchAccountList() {
     const list = await Com.businessDB.manager.find(Account, {
       select: ['id', 'nickname'],
     });
@@ -168,8 +168,8 @@ class AuthHandler extends AuthRoute {
 
     const group = await Com.businessDB.manager.findOne(AuthGroup, {
       where: {
-        id: body.gid
-      }
+        id: body.gid,
+      },
     });
 
     if (!group)

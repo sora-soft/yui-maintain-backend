@@ -1,12 +1,13 @@
-import {DatabaseComponent, FindManyOptions, FindOptionsOrder, FindOptionsRelations, ObjectLiteral, WhereBuilder, WhereCondition, FindOptionsOrderValue} from '@sora-soft/database-component';
+import {DatabaseComponent, WhereBuilder, WhereCondition} from '@sora-soft/database-component';
+import {FindManyOptions, FindOptionsOrder, FindOptionsRelations, ObjectLiteral, FindOptionsOrderValue} from '@sora-soft/database-component/typeorm';
 import {ExError, Route, Service} from '@sora-soft/framework';
-import {ValidateClass, AssertType} from 'typescript-is';
-import {AppErrorCode, UserErrorCode} from '../ErrorCode';
-import {UserError} from '../UserError';
+import {ValidateClass, AssertType} from '@sora-soft/type-guard';
+import {AppErrorCode, UserErrorCode} from '../ErrorCode.js';
+import {UserError} from '../UserError.js';
 import {validate} from 'class-validator';
-import {AppError} from '../AppError';
-import {Util} from '../../lib/Utility';
-import {AuthRoute} from '../../lib/route/AuthRoute';
+import {AppError} from '../AppError.js';
+import {Util} from '../../lib/Utility.js';
+import {AuthRoute} from '../../lib/route/AuthRoute.js';
 
 type EntityValueTypeProperty<T, V> = T extends Array<any> ? V : T extends string ? never : T extends number ? never : T extends V ? never : T extends Function ? never : T extends object ? EntityValueType<T> | V : V
 type EntityValueType<T> = {

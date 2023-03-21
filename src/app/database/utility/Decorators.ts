@@ -1,4 +1,5 @@
-import {DatabaseComponent, EntityManager} from '@sora-soft/database-component';
+import {DatabaseComponent} from '@sora-soft/database-component';
+import {EntityManager} from '@sora-soft/database-component/typeorm';
 
 export const transaction = (component: DatabaseComponent) => {
   return (target: Object, key: string, descriptor: PropertyDescriptor) => {
@@ -8,7 +9,6 @@ export const transaction = (component: DatabaseComponent) => {
     if (idx < 0)
       throw new TypeError('Cannot find EntityManager parameter');
 
-    // tslint:disable-next-line: only-arrow-functions
     descriptor.value = async function (...args: unknown[]) {
       const inputManager: EntityManager = args[idx] as EntityManager || component.manager;
       if (!inputManager.queryRunner || !inputManager.queryRunner.isTransactionActive) {

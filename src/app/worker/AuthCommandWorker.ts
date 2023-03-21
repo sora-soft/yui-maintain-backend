@@ -1,17 +1,16 @@
 import {IWorkerOptions, Node, Worker} from '@sora-soft/framework';
-import {Com} from '../../lib/Com';
-import {RootGroupId} from '../account/AccountType';
-import {AccountWorld} from '../account/AccountWorld';
-import {WorkerName} from './common/WorkerName';
-import * as md5 from 'md5';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {AppErrorCode} from '../ErrorCode';
-import {AppError} from '../AppError';
+import {Com} from '../../lib/Com.js';
+import {RootGroupId} from '../account/AccountType.js';
+import {AccountWorld} from '../account/AccountWorld.js';
+import {WorkerName} from './common/WorkerName.js';
+import md5 from 'md5';
+import {AppErrorCode} from '../ErrorCode.js';
+import {AppError} from '../AppError.js';
+import {TypeGuard} from '@sora-soft/type-guard';
 
 export interface IAuthCommandWorkerOptions extends IWorkerOptions {
 }
 
-@ValidateClass()
 class AuthCommandWorker extends Worker {
   static register() {
     Node.registerWorker(WorkerName.AuthCommand, (options: IAuthCommandWorkerOptions) => {
@@ -19,8 +18,9 @@ class AuthCommandWorker extends Worker {
     });
   }
 
-  constructor(name: string, @AssertType() options: IAuthCommandWorkerOptions) {
+  constructor(name: string, options: IAuthCommandWorkerOptions) {
     super(name);
+    TypeGuard.assertType<IAuthCommandWorkerOptions>(options);
     this.options_ = options;
   }
 
