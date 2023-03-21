@@ -1,5 +1,5 @@
 import PopCore = require('@alicloud/pop-core');
-import {IAliCloudCommonConfig} from './AliCloudType';
+import {IAliCloudCommonConfig} from './AliCloudType.js';
 
 export interface IAliCloudPopConfig {
   accountName: string;

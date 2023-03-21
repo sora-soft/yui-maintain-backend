@@ -1,11 +1,11 @@
 import {ErrorLevel, ExError, IRawResPacket, ListenerCallback, Logger, NodeTime, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, RPCResponseError, Runtime, Service} from '@sora-soft/framework';
-import {GuestGroupId} from '../../app/account/AccountType';
-import {AccountWorld} from '../../app/account/AccountWorld';
-import {Application} from '../../app/Application';
-import {AccountToken} from '../../app/database/Account';
-import {UserErrorCode} from '../../app/ErrorCode';
-import {ServiceName} from '../../app/service/common/ServiceName';
-import {AuthRPCHeader, ForwardRPCHeader} from '../Const';
+import {GuestGroupId} from '../../app/account/AccountType.js';
+import {AccountWorld} from '../../app/account/AccountWorld.js';
+import {Application} from '../../app/Application.js';
+import {AccountToken} from '../../app/database/Account.js';
+import {UserErrorCode} from '../../app/ErrorCode.js';
+import {ServiceName} from '../../app/service/common/ServiceName.js';
+import {AuthRPCHeader, ForwardRPCHeader} from '../Const.js';
 
 type RouteMap = { [key in ServiceName]?: Provider<Route>};
 
@@ -100,7 +100,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
                 [AuthRPCHeader.RPC_AUTH_GID]: token?.gid || GuestGroupId,
-                [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null
+                [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null,
               },
               timeout: NodeTime.second(60),
             }, true).catch((error: ExError) => {
@@ -152,8 +152,8 @@ class ForwardRoute<T extends Service = Service> extends Route {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
                 [AuthRPCHeader.RPC_AUTH_GID]: token?.gid || GuestGroupId,
-                [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null
-              }
+                [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null,
+              },
             });
             Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method, duration: Date.now() - startTime});
             return null;

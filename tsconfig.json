@@ -1,23 +1,23 @@
 {
   "compilerOptions": {
-    "moduleResolution": "node",
-    "module": "commonjs",
+    "moduleResolution": "node16",
+    "module": "Node16",
     "declaration": true,
     "target": "ESNext",
     "outDir": "./dist",
     "sourceMap": true,
-    "alwaysStrict": true,
     "strictNullChecks": true,
+    "alwaysStrict": true,
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "plugins": [{
-      "transform": "typescript-is/lib/transform-inline/transformer"
+      "transform": "@sora-soft/type-guard/dist/transformer"
     }]
   },
   "include": [
     "./src/**/*",
-    "./.eslintrc.js"
+    "./.eslintrc.cjs"
   ],
   "exclude": [
     "dist",

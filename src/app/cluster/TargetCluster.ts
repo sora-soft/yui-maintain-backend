@@ -1,7 +1,7 @@
 import {Discovery, Provider, ProviderManager, TCPConnector, NodeHandler, Context, Route, INodeRunData, ProviderEvent, RPCSender, ConnectorState, LifeCycleEvent} from '@sora-soft/framework';
-import {Application} from '../Application';
-import {ServiceName} from '../service/common/ServiceName';
-import {NodeNotifyHandler} from './NodeNotifyHandler';
+import {Application} from '../Application.js';
+import {ServiceName} from '../service/common/ServiceName.js';
+import {NodeNotifyHandler} from './NodeNotifyHandler.js';
 
 class TargetCluster {
   constructor(discovery: Discovery) {

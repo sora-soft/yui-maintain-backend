@@ -1,16 +1,15 @@
 import {IServiceOptions, ITCPListenerOptions, Node, Route, Service, TCPListener, Context} from '@sora-soft/framework';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {Com} from '../../lib/Com';
-import {Account} from '../database/Account';
-import {AuthGroup, AuthPermission} from '../database/Auth';
-import {RestfulHandler} from '../handler/RestfulHandler';
-import {ServiceName} from './common/ServiceName';
+import {TypeGuard} from '@sora-soft/type-guard';
+import {Com} from '../../lib/Com.js';
+import {Account} from '../database/Account.js';
+import {AuthGroup, AuthPermission} from '../database/Auth.js';
+import {RestfulHandler} from '../handler/RestfulHandler.js';
+import {ServiceName} from './common/ServiceName.js';
 
 export interface IRestOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
 }
 
-@ValidateClass()
 class RestfulService extends Service {
   static register() {
     Node.registerService(ServiceName.Restful, (options: IRestOptions) => {
@@ -18,8 +17,9 @@ class RestfulService extends Service {
     });
   }
 
-  constructor(name: string, @AssertType() options: IRestOptions) {
+  constructor(name: string, options: IRestOptions) {
     super(name, options);
+    TypeGuard.assertType<IRestOptions>(options);
     this.serviceConfig_ = options;
   }
 
@@ -42,7 +42,7 @@ class RestfulService extends Service {
         name: 'auth-permission',
         com: Com.businessDB,
         entity: AuthPermission,
-      }
+      },
     ]);
     const listener = new TCPListener(this.serviceConfig_.tcpListener, Route.callback(route));
 

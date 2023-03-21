@@ -2,18 +2,17 @@ import {Context, ExError, Logger, NodeTime, TCPListener} from '@sora-soft/framew
 import {ITCPListenerOptions} from '@sora-soft/framework';
 import {Route} from '@sora-soft/framework';
 import {IServiceOptions, Node, Service} from '@sora-soft/framework';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {Com} from '../../lib/Com';
-import {AccountWorld} from '../account/AccountWorld';
-import {Application} from '../Application';
-import {AuthHandler} from '../handler/AuthHandler';
-import {ServiceName} from './common/ServiceName';
+import {TypeGuard} from '@sora-soft/type-guard';
+import {Com} from '../../lib/Com.js';
+import {AccountWorld} from '../account/AccountWorld.js';
+import {Application} from '../Application.js';
+import {AuthHandler} from '../handler/AuthHandler.js';
+import {ServiceName} from './common/ServiceName.js';
 
 export interface IAuthOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
 }
 
-@ValidateClass()
 class AuthService extends Service {
   static register() {
     Node.registerService(ServiceName.Auth, (options: IAuthOptions) => {
@@ -21,8 +20,9 @@ class AuthService extends Service {
     });
   }
 
-  constructor(name: string, @AssertType() options: IAuthOptions) {
+  constructor(name: string, options: IAuthOptions) {
     super(name, options);
+    TypeGuard.assertType<IAuthOptions>(options);
     this.serviceOptions_ = options;
   }
 

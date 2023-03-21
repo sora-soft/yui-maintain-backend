@@ -1,17 +1,19 @@
 import {ETCDDiscovery} from '@sora-soft/etcd-discovery';
 import {AbortError, ConsoleOutput, ExError, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, Logger, LogLevel, Node, Runtime} from '@sora-soft/framework';
-import {AppLogger} from './AppLogger';
-import {Pvd} from '../lib/Provider';
-import {ServiceRegister} from './service/common/ServiceRegister';
-import {assertType} from 'typescript-is';
-import {AppError} from './AppError';
-import {AppErrorCode} from './ErrorCode';
-import {WorkerRegister} from './worker/common/WorkerRegister';
-import {FileOutput} from '../lib/FileLogger';
-import {Com} from '../lib/Com';
+import {AppLogger} from './AppLogger.js';
+import {Pvd} from '../lib/Provider.js';
+import {ServiceRegister} from './service/common/ServiceRegister.js';
+import {AppError} from './AppError.js';
+import {AppErrorCode} from './ErrorCode.js';
+import {WorkerRegister} from './worker/common/WorkerRegister.js';
+import {FileOutput} from '../lib/FileLogger.js';
+import {Com} from '../lib/Com.js';
+import {TypeGuard} from '@sora-soft/type-guard';
+import {readFile} from 'fs/promises';
 
-// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-var-requires
-const pkg: {version: string; name: string} = require('../../package.json');
+const pkg = JSON.parse(
+  await readFile(new URL('../../package.json', import.meta.url), {encoding: 'utf-8'})
+) as {version: string; name: string};
 
 export interface IApplicationLoggerOptions {
   file: {
@@ -129,7 +131,7 @@ class Application {
       logLevels.push(LogLevel.debug);
 
     const consoleOutput = new ConsoleOutput({
-      levels: logLevels
+      levels: logLevels,
     });
     const fileOutput = new FileOutput({
       levels: logLevels,
@@ -148,7 +150,7 @@ class Application {
       logLevels.push(LogLevel.debug);
 
     const consoleOutput = new ConsoleOutput({
-      levels: logLevels
+      levels: logLevels,
     });
     const fileOutput = new FileOutput({
       levels: logLevels,
@@ -163,7 +165,7 @@ class Application {
   private static async start(options: IApplicationOptions) {
     this.config_ = options;
     try {
-      assertType<IApplicationOptions>(options);
+      TypeGuard.assertType<IApplicationOptions>(options);
     } catch(e) {
       const err = ExError.fromError(e as Error);
       throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, `ERR_LOAD_CONFIG, message=${err.message}`);
@@ -183,7 +185,7 @@ class Application {
     await Runtime.loadConfig({scope: options.discovery.scope});
     const discovery = new ETCDDiscovery({
       etcdComponentName: options.discovery.etcdComponentName,
-      prefix: `/${Runtime.scope}`
+      prefix: `/${Runtime.scope}`,
     });
     const node = new Node(options.node);
     await Runtime.startup(node, discovery);

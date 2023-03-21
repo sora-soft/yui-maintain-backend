@@ -1,6 +1,6 @@
 import {LifeCycleEvent, Listener, ListenerState} from '@sora-soft/framework';
-import {Com} from '../../lib/Com';
-import {EtcdKey} from '../Keys';
+import {Com} from '../../lib/Com.js';
+import {EtcdKey} from '../Keys.js';
 
 class TraefikWorld {
   static registerTraefikListener(prefix: string, protocol: string, name: string, listener: Listener) {

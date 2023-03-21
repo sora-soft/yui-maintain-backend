@@ -1,5 +1,5 @@
-import {AccountType} from '../lib/Enum';
-import {AccountId} from './account/AccountType';
+import {AccountType} from '../lib/Enum.js';
+import {AccountId} from './account/AccountType.js';
 
 export class EtcdKey {
   static accountRegisterUsernameLock(type: AccountType, username: string) {

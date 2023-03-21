@@ -1,25 +1,25 @@
-import {IDatabaseComponentOptions, DataSource, DatabaseComponent} from '@sora-soft/database-component';
+import {IDatabaseComponentOptions, DatabaseComponent} from '@sora-soft/database-component';
+import {DataSource} from '@sora-soft/database-component/typeorm';
 import {IWorkerOptions, Node, Runtime, Worker} from '@sora-soft/framework';
-import {ComponentName} from '../../lib/Com';
-import {Application} from '../Application';
-import {WorkerName} from './common/WorkerName';
+import {ComponentName} from '../../lib/Com.js';
+import {Application} from '../Application.js';
+import {WorkerName} from './common/WorkerName.js';
 import camelcase = require('camelcase');
 import fs = require('fs/promises');
 import path = require('path');
 import moment = require('moment');
 import {mkdirp} from 'mkdirp';
-import {UserError} from '../UserError';
-import {AppErrorCode, UserErrorCode} from '../ErrorCode';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {AppError} from '../AppError';
-import {ISoraConfig} from '../Types';
+import {UserError} from '../UserError.js';
+import {AppErrorCode, UserErrorCode} from '../ErrorCode.js';
+import {AppError} from '../AppError.js';
+import {ISoraConfig} from '../Types.js';
+import {TypeGuard} from '@sora-soft/type-guard';
 
 
 export interface IDatabaseMigrateCommandWorkerOptions extends IWorkerOptions {
   components: ComponentName[];
 }
 
-@ValidateClass()
 class DatabaseMigrateCommandWorker extends Worker {
   static register() {
     Node.registerWorker(WorkerName.DatabaseMigrateCommand, (options: IDatabaseMigrateCommandWorkerOptions) => {
@@ -27,8 +27,9 @@ class DatabaseMigrateCommandWorker extends Worker {
     });
   }
 
-  constructor(name: string, @AssertType() options: IDatabaseMigrateCommandWorkerOptions) {
+  constructor(name: string, options: IDatabaseMigrateCommandWorkerOptions) {
     super(name);
+    TypeGuard.assertType<IDatabaseMigrateCommandWorkerOptions>(options);
     this.options_ = options;
   }
 
@@ -75,7 +76,7 @@ class DatabaseMigrateCommandWorker extends Worker {
           if (upSqls.length || downSqls.length) {
             const className = `${camelcase(name, {pascalCase: true})}${Date.now()}`;
             const file =
-`import {MigrationInterface, QueryRunner} from '@sora-soft/database-component';
+`import {MigrationInterface, QueryRunner} from '@sora-soft/database-component/typeorm';
 
 export class ${className} implements MigrationInterface {
   async up(queryRunner: QueryRunner): Promise<void> {

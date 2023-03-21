@@ -1,11 +1,11 @@
 import {IServiceOptions, Node, Service, ITCPListenerOptions, Context, TCPListener} from '@sora-soft/framework';
-import {ServiceName} from './common/ServiceName';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {Com} from '../../lib/Com';
-import {MonitorHandler} from '../handler/MonitorHandler';
-import {AuthRoute} from '../../lib/route/AuthRoute';
-import {TargetCluster} from '../cluster/TargetCluster';
+import {ServiceName} from './common/ServiceName.js';
+import {Com} from '../../lib/Com.js';
+import {MonitorHandler} from '../handler/MonitorHandler.js';
+import {AuthRoute} from '../../lib/route/AuthRoute.js';
+import {TargetCluster} from '../cluster/TargetCluster.js';
 import {ETCDDiscovery} from '@sora-soft/etcd-discovery';
+import {TypeGuard} from '@sora-soft/type-guard';
 
 export interface IMonitorOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
@@ -15,7 +15,6 @@ export interface IMonitorOptions extends IServiceOptions {
   };
 }
 
-@ValidateClass()
 class MonitorService extends Service {
   static register() {
     Node.registerService(ServiceName.Monitor, (options: IMonitorOptions) => {
@@ -23,7 +22,8 @@ class MonitorService extends Service {
     });
   }
 
-  constructor(name: string, @AssertType() options: IMonitorOptions) {
+  constructor(name: string, options: IMonitorOptions) {
+    TypeGuard.assertType<IMonitorOptions>(options);
     super(name, options);
     this.serviceOptions_ = options;
   }

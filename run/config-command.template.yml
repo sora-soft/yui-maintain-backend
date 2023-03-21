@@ -10,8 +10,7 @@
 #define(databasePassword,password,database password?)
 #define(databaseDB,string,database db name?)
 #define(etcdHost,string,etcd host?)
-#define(redisHost,string,redis host?)
-#define(redisPort,number,redis port?)
+#define(redisUrl,string,redis url?)
 #define(redisDB,number,redis db?)
 
 debug: true
@@ -33,10 +32,8 @@ node:
 
 components:
   business-redis:
-    host: $(redisHost)
-    port: $(redisPort)
-    db: $(redisDB)
-    prefix: $(projectScope)
+    url: $(redisUrl)
+    database: $(redisDB)
   business-database:
     database:
       type: $(databaseType)

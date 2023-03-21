@@ -1,11 +1,11 @@
-import 'source-map-support/register';
-import {Application, IApplicationOptions} from './app/Application';
-import {ConfigLoader} from './lib/ConfigLoader';
+import 'source-map-support/register.js';
+import {Application, IApplicationOptions} from './app/Application.js';
+import {ConfigLoader} from './lib/ConfigLoader.js';
 import path = require('path');
 import 'reflect-metadata';
 import {ExError, Logger, Runtime} from '@sora-soft/framework';
-import {AppError} from './app/AppError';
-import {AppErrorCode} from './app/ErrorCode';
+import {AppError} from './app/AppError.js';
+import {AppErrorCode} from './app/ErrorCode.js';
 
 export interface IStartupOptions {
   readonly config: string;

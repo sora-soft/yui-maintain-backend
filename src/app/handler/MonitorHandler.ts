@@ -1,7 +1,7 @@
 import {Route} from '@sora-soft/framework';
-import {ValidateClass} from 'typescript-is';
-import {AuthRoute} from '../../lib/route/AuthRoute';
-import {MonitorService} from '../service/MonitorService';
+import {ValidateClass} from '@sora-soft/type-guard';
+import {AuthRoute} from '../../lib/route/AuthRoute.js';
+import {MonitorService} from '../service/MonitorService.js';
 
 interface IReqFetchNodeRunningData {
   id: string;
@@ -10,7 +10,7 @@ interface IReqFetchNodeRunningData {
 @ValidateClass()
 class MonitorHandler extends AuthRoute<MonitorService> {
   @Route.method
-  async fetchTargetClusterAllService(body: void) {
+  async fetchTargetClusterAllService() {
     const serviceList = await this.service.target.discovery.getAllServiceList();
 
     return {

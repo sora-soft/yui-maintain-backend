@@ -1,10 +1,10 @@
 import {Provider, TCPConnector} from '@sora-soft/framework';
 import {WebSocketConnector} from '@sora-soft/http-support';
-import {AuthHandler} from '../app/handler/AuthHandler';
-import {GatewayHandler} from '../app/handler/GatewayHandler';
-import {MonitorHandler} from '../app/handler/MonitorHandler';
-import {RestfulHandler} from '../app/handler/RestfulHandler';
-import {ServiceName} from '../app/service/common/ServiceName';
+import {AuthHandler} from '../app/handler/AuthHandler.js';
+import {GatewayHandler} from '../app/handler/GatewayHandler.js';
+import {MonitorHandler} from '../app/handler/MonitorHandler.js';
+import {RestfulHandler} from '../app/handler/RestfulHandler.js';
+import {ServiceName} from '../app/service/common/ServiceName.js';
 
 class Pvd {
   static registerSenders() {

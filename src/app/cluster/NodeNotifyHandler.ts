@@ -1,6 +1,6 @@
 import {Route, INodeNotifyHandler, INodeRunData} from '@sora-soft/framework';
-import {AssertType, ValidateClass} from 'typescript-is';
-import {TargetCluster} from './TargetCluster';
+import {AssertType, ValidateClass} from '@sora-soft/type-guard';
+import {TargetCluster} from './TargetCluster.js';
 
 @ValidateClass()
 class NodeNotifyHandler extends Route implements INodeNotifyHandler {

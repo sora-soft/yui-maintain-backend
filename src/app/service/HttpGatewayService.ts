@@ -1,15 +1,15 @@
 import {Context, IServiceOptions, Node, Service} from '@sora-soft/framework';
-import {Pvd} from '../../lib/Provider';
-import {ServiceName} from './common/ServiceName';
+import {Pvd} from '../../lib/Provider.js';
+import {ServiceName} from './common/ServiceName.js';
 import Koa = require('koa');
 import {HTTPListener, IHTTPListenerOptions, IWebSocketListenerOptions, WebSocketListener} from '@sora-soft/http-support';
-import {GatewayHandler} from '../handler/GatewayHandler';
-import {ForwardRoute} from '../../lib/route/ForwardRoute';
-import {Com} from '../../lib/Com';
-import {AccountWorld} from '../account/AccountWorld';
-import {Application} from '../Application';
-import {TraefikWorld} from '../traefik/TraefikWorld';
-import {AssertType, ValidateClass} from 'typescript-is';
+import {GatewayHandler} from '../handler/GatewayHandler.js';
+import {ForwardRoute} from '../../lib/route/ForwardRoute.js';
+import {Com} from '../../lib/Com.js';
+import {AccountWorld} from '../account/AccountWorld.js';
+import {Application} from '../Application.js';
+import {TraefikWorld} from '../traefik/TraefikWorld.js';
+import {TypeGuard} from '@sora-soft/type-guard';
 
 export interface IHttpGatewayOptions extends IServiceOptions {
   httpListener: IHTTPListenerOptions;
@@ -21,7 +21,6 @@ export interface IHttpGatewayOptions extends IServiceOptions {
   };
 }
 
-@ValidateClass()
 class HttpGatewayService extends Service {
   static register() {
     Node.registerService(ServiceName.HttpGateway, (options: IHttpGatewayOptions) => {
@@ -29,8 +28,9 @@ class HttpGatewayService extends Service {
     });
   }
 
-  constructor(name: string, @AssertType() options: IHttpGatewayOptions) {
+  constructor(name: string, options: IHttpGatewayOptions) {
     super(name, options);
+    TypeGuard.assertType<IServiceOptions>(options);
     this.gatewayOptions_ = options;
   }
 

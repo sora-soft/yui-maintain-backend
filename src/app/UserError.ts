@@ -1,5 +1,5 @@
 import {ErrorLevel, ExError} from '@sora-soft/framework';
-import {UserErrorCode} from './ErrorCode';
+import {UserErrorCode} from './ErrorCode.js';
 
 class UserError extends ExError {
   constructor(code: UserErrorCode, message: string) {
