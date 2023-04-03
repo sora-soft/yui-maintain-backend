@@ -164,8 +164,9 @@ class Application {
 
   private static async start(options: IApplicationOptions) {
     this.config_ = options;
+    Runtime.appVersion = pkg.version;
     try {
-      TypeGuard.assertType<IApplicationOptions>(options);
+      TypeGuard.assert<IApplicationOptions>(options);
     } catch(e) {
       const err = ExError.fromError(e as Error);
       throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, `ERR_LOAD_CONFIG, message=${err.message}`);
@@ -185,7 +186,7 @@ class Application {
     await Runtime.loadConfig({scope: options.discovery.scope});
     const discovery = new ETCDDiscovery({
       etcdComponentName: options.discovery.etcdComponentName,
-      prefix: `/${Runtime.scope}`,
+      prefix: options.discovery.scope,
     });
     const node = new Node(options.node);
     await Runtime.startup(node, discovery);

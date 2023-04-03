@@ -17,7 +17,7 @@ export interface IHttpGatewayOptions extends IServiceOptions {
   skipAuthCheck?: boolean;
   traefik?: {
     prefix: string;
-    name: string;
+    name?: string;
   };
 }
 
@@ -30,7 +30,7 @@ class HttpGatewayService extends Service {
 
   constructor(name: string, options: IHttpGatewayOptions) {
     super(name, options);
-    TypeGuard.assertType<IServiceOptions>(options);
+    TypeGuard.assert<IHttpGatewayOptions>(options);
     this.gatewayOptions_ = options;
   }
 

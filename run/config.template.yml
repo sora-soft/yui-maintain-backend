@@ -15,6 +15,7 @@
 #define(aliKeyId,string,alicloud sdk access key id?)
 #define(aliKeySecret,password,alicloud sdk access key secret?)
 #define(aliPopAccountName,string,alicloud pop account name?)
+#define(alias,string,alias name?)
 
 debug: true
 discovery:
@@ -26,6 +27,7 @@ logger:
     fileFormat: '[./logs/server-]YYYY-MM-DD[.log]'
 
 node:
+  alias: $(alias)
   api:
     portRange:
       - $(portRangeMin)
