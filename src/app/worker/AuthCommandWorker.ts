@@ -19,8 +19,8 @@ class AuthCommandWorker extends Worker {
   }
 
   constructor(name: string, options: IAuthCommandWorkerOptions) {
-    super(name);
-    TypeGuard.assertType<IAuthCommandWorkerOptions>(options);
+    super(name, options);
+    TypeGuard.assert<IAuthCommandWorkerOptions>(options);
     this.options_ = options;
   }
 

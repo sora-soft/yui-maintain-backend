@@ -1,4 +1,4 @@
-import {Route, UnixTime} from '@sora-soft/framework';
+import {ExError, Logger, Route, UnixTime} from '@sora-soft/framework';
 import {Com} from '../../lib/Com.js';
 import {Account, AccountPassword, AccountToken} from '../database/Account.js';
 import {UserErrorCode} from '../ErrorCode.js';
@@ -12,6 +12,7 @@ import {Hash} from '../../lib/Utility.js';
 import {AuthPermission} from '../database/Auth.js';
 import {AccountRoute} from '../../lib/route/AccountRoute.js';
 import {v4 as uuid} from 'uuid';
+import {HttpGatewayService} from '../service/HttpGatewayService.js';
 
 export interface IRegisterReq {
   username: string;
@@ -32,7 +33,7 @@ export interface IAKLoginReq {
 }
 
 @ValidateClass()
-class GatewayHandler extends ForwardRoute {
+class GatewayHandler extends ForwardRoute<HttpGatewayService> {
   @Route.method
   async register(@AssertType() body: IRegisterReq) {
     const account = await AccountWorld.createAccount({
@@ -132,6 +133,10 @@ class GatewayHandler extends ForwardRoute {
   @AccountRoute.token()
   async logout(body: void, token: AccountToken) {
     await AccountWorld.deleteAccountSession(token.session);
+
+    this.service.unregisterAllNotify(token.session).catch((err: ExError) => {
+      Application.appLog.error('gateway-handler', err, {event: 'unregister-all-notify-error', error: Logger.errorMessage(err)});
+    });
 
     return {};
   }

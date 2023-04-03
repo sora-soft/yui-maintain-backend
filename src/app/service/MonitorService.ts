@@ -3,16 +3,12 @@ import {ServiceName} from './common/ServiceName.js';
 import {Com} from '../../lib/Com.js';
 import {MonitorHandler} from '../handler/MonitorHandler.js';
 import {AuthRoute} from '../../lib/route/AuthRoute.js';
-import {TargetCluster} from '../cluster/TargetCluster.js';
-import {ETCDDiscovery} from '@sora-soft/etcd-discovery';
 import {TypeGuard} from '@sora-soft/type-guard';
+import {Pvd} from '../../lib/Provider.js';
 
 export interface IMonitorOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
-  target: {
-    etcdComponentName: string;
-    scope: string;
-  };
+  targetScope: string;
 }
 
 class MonitorService extends Service {
@@ -23,37 +19,27 @@ class MonitorService extends Service {
   }
 
   constructor(name: string, options: IMonitorOptions) {
-    TypeGuard.assertType<IMonitorOptions>(options);
+    TypeGuard.assert<IMonitorOptions>(options);
     super(name, options);
-    this.serviceOptions_ = options;
+    this.monitorOptions_ = options;
   }
 
   protected async startup(ctx: Context) {
     await this.connectComponents([Com.businessDB, Com.businessRedis, Com.targetEtcd], ctx);
-    const discovery = new ETCDDiscovery({
-      etcdComponentName: this.serviceOptions_.target.etcdComponentName,
-      prefix: `/${this.serviceOptions_.target.scope}`,
-    });
-    await discovery.connect(ctx);
-    this.target_ = new TargetCluster(discovery);
-    await this.target_.start(ctx);
+    await this.registerProvider(Pvd.httpGateway);
 
     const route = new MonitorHandler(this);
-
-    const listener = new TCPListener(this.serviceOptions_.tcpListener, AuthRoute.callback(route));
+    const listener = new TCPListener(this.monitorOptions_.tcpListener, AuthRoute.callback(route));
     await this.installListener(listener, ctx);
   }
 
-  protected async shutdown() {
-    await this.target_.stop();
+  protected async shutdown() {}
+
+  get targetScope() {
+    return this.monitorOptions_.targetScope;
   }
 
-  get target() {
-    return this.target_;
-  }
-
-  private serviceOptions_: IMonitorOptions;
-  private target_: TargetCluster;
+  private monitorOptions_: IMonitorOptions;
 }
 
 export {MonitorService};

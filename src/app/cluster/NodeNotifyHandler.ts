@@ -1,6 +1,6 @@
-import {Route, INodeNotifyHandler, INodeRunData} from '@sora-soft/framework';
-import {AssertType, ValidateClass} from '@sora-soft/type-guard';
-import {TargetCluster} from './TargetCluster.js';
+import {Route, INodeNotifyHandler, INodeRunDataDiff} from '@sora-soft/framework';
+import {ValidateClass} from '@sora-soft/type-guard';
+import type {TargetCluster} from './TargetCluster.js';
 
 @ValidateClass()
 class NodeNotifyHandler extends Route implements INodeNotifyHandler {
@@ -10,8 +10,8 @@ class NodeNotifyHandler extends Route implements INodeNotifyHandler {
   }
 
   @Route.notify
-  async notifyNodeState(@AssertType() body: INodeRunData): Promise<void> {
-    this.cluster_.updateNodeRunningData(body);
+  async notifyNodeState(body: INodeRunDataDiff): Promise<void> {
+    this.cluster_.updateNodeRunningData(body.id, body.diff);
   }
 
   private cluster_: TargetCluster;

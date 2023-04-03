@@ -28,8 +28,8 @@ class DatabaseMigrateCommandWorker extends Worker {
   }
 
   constructor(name: string, options: IDatabaseMigrateCommandWorkerOptions) {
-    super(name);
-    TypeGuard.assertType<IDatabaseMigrateCommandWorkerOptions>(options);
+    super(name, options);
+    TypeGuard.assert<IDatabaseMigrateCommandWorkerOptions>(options);
     this.options_ = options;
   }
 

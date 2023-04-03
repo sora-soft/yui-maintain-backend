@@ -41,17 +41,22 @@ services:
       portRange:
         - $(portRangeMin)
         - $(portRangeMax)
-      host: $(host)
+      host: 0.0.0.0
       exposeHost: $(exposeHost)
-    traefik:
-      prefix: traefik
     websocketListener:
       portRange:
         - $(portRangeMin)
         - $(portRangeMax)
-      host: $(host)
+      host: 0.0.0.0
       exposeHost: $(exposeHost)
       entryPath: '/ws'
+    serverListener:
+      portRange:
+        - $(portRangeMin)
+        - $(portRangeMax)
+      host: $(host)
+    traefik:
+      prefix: traefik
 
   restful:
     tcpListener:
@@ -59,7 +64,6 @@ services:
         - $(portRangeMin)
         - $(portRangeMax)
       host: $(host)
-      exposeHost: $(exposeHost)
 
   auth:
     tcpListener:
@@ -67,7 +71,6 @@ services:
         - $(portRangeMin)
         - $(portRangeMax)
       host: $(host)
-      exposeHost: $(exposeHost)
 
   monitor:
     tcpListener:
@@ -75,10 +78,7 @@ services:
         - $(portRangeMin)
         - $(portRangeMax)
       host: $(host)
-      exposeHost: $(exposeHost)
-    target:
-      etcdComponentName: 'target-etcd'
-      scope: $(targetScope)
+    targetScope: $(targetScope)
 
 components:
   business-redis:
@@ -110,4 +110,8 @@ components:
     pop:
       accountName: $(aliPopAccountName)
 
-workers: {}
+workers:
+  monitor:
+    target:
+      etcdComponentName: 'target-etcd'
+      scope: $(targetScope)

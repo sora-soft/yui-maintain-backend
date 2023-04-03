@@ -10,7 +10,7 @@ export interface IAliCloudComponentOptions extends IComponentOptions, IAliCloudC
 
 class AliCloudComponent extends Component {
   protected setOptions(options: IAliCloudComponentOptions) {
-    TypeGuard.assertType<IAliCloudComponentOptions>(options);
+    TypeGuard.assert<IAliCloudComponentOptions>(options);
     this.aliCloudOptions_ = options;
   }
 

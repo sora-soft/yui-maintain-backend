@@ -22,8 +22,8 @@ class AuthService extends Service {
 
   constructor(name: string, options: IAuthOptions) {
     super(name, options);
-    TypeGuard.assertType<IAuthOptions>(options);
-    this.serviceOptions_ = options;
+    TypeGuard.assert<IAuthOptions>(options);
+    this.authOptions_ = options;
   }
 
   protected async startup(ctx: Context) {
@@ -31,7 +31,7 @@ class AuthService extends Service {
 
     const route = new AuthHandler(this);
 
-    const listener = new TCPListener(this.serviceOptions_.tcpListener, Route.callback(route));
+    const listener = new TCPListener(this.authOptions_.tcpListener, Route.callback(route));
     await this.installListener(listener, ctx);
 
     this.doJobInterval(async () => {
@@ -44,7 +44,7 @@ class AuthService extends Service {
 
   protected async shutdown() {}
 
-  private serviceOptions_: IAuthOptions;
+  private authOptions_: IAuthOptions;
 }
 
 export {AuthService};

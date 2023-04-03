@@ -6,21 +6,21 @@ import {AuthGroup, AuthPermission} from '../database/Auth.js';
 import {RestfulHandler} from '../handler/RestfulHandler.js';
 import {ServiceName} from './common/ServiceName.js';
 
-export interface IRestOptions extends IServiceOptions {
+export interface IRestfulOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
 }
 
 class RestfulService extends Service {
   static register() {
-    Node.registerService(ServiceName.Restful, (options: IRestOptions) => {
+    Node.registerService(ServiceName.Restful, (options: IRestfulOptions) => {
       return new RestfulService(ServiceName.Restful, options);
     });
   }
 
-  constructor(name: string, options: IRestOptions) {
+  constructor(name: string, options: IRestfulOptions) {
     super(name, options);
-    TypeGuard.assertType<IRestOptions>(options);
-    this.serviceConfig_ = options;
+    TypeGuard.assert<IRestfulOptions>(options);
+    this.restfulConfig_ = options;
   }
 
   protected async startup(ctx: Context) {
@@ -44,7 +44,7 @@ class RestfulService extends Service {
         entity: AuthPermission,
       },
     ]);
-    const listener = new TCPListener(this.serviceConfig_.tcpListener, Route.callback(route));
+    const listener = new TCPListener(this.restfulConfig_.tcpListener, Route.callback(route));
 
     await this.installListener(listener, ctx);
   }
@@ -52,7 +52,7 @@ class RestfulService extends Service {
   protected async shutdown() {
   }
 
-  private serviceConfig_: IRestOptions;
+  private restfulConfig_: IRestfulOptions;
 }
 
 export {RestfulService};

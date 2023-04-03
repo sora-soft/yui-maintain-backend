@@ -60,14 +60,6 @@ export interface IReqForgetPassword {
   password: string;
 }
 
-export interface IReqDeleteAccessKey {
-  id: string;
-}
-
-export interface IReqFetchAccessKey {
-  offset: number;
-  limit: number;
-}
 
 @ValidateClass()
 class AuthHandler extends AuthRoute {
