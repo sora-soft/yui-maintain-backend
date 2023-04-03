@@ -12,6 +12,7 @@
 #define(etcdHost,string,etcd host?)
 #define(redisUrl,string,redis url?)
 #define(redisDB,number,redis db?)
+#define(alias,string,alias name?)
 
 debug: true
 discovery:
@@ -23,6 +24,7 @@ logger:
     fileFormat: '[./logs/server-]YYYY-MM-DD[.log]'
 
 node:
+  alias: $(alias)
   api:
     portRange:
       - $(portRangeMin)

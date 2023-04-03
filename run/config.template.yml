@@ -17,6 +17,7 @@
 #define(aliPopAccountName,string,alicloud pop account name?)
 #define(targetEtcdHost,string,target cluster etcd host?)
 #define(targetScope,string,target cluster scope?)
+#define(alias,string,alias name?)
 
 debug: true
 discovery:
@@ -28,6 +29,7 @@ logger:
     fileFormat: '[./logs/server-]YYYY-MM-DD[.log]'
 
 node:
+  alias: $(alias)
   api:
     portRange:
       - $(portRangeMin)

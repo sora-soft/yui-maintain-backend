@@ -164,6 +164,7 @@ class Application {
 
   private static async start(options: IApplicationOptions) {
     this.config_ = options;
+    Runtime.appVersion = pkg.version;
     try {
       TypeGuard.assert<IApplicationOptions>(options);
     } catch(e) {
