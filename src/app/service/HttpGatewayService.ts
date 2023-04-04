@@ -1,7 +1,7 @@
 import {Context, IServiceOptions, Node, Service} from '@sora-soft/framework';
 import {Pvd} from '../../lib/Provider.js';
 import {ServiceName} from './common/ServiceName.js';
-import Koa = require('koa');
+import Koa from '@sora-soft/http-support/koa';
 import {HTTPListener, IHTTPListenerOptions, IWebSocketListenerOptions, WebSocketListener} from '@sora-soft/http-support';
 import {GatewayHandler} from '../handler/GatewayHandler.js';
 import {ForwardRoute} from '../../lib/route/ForwardRoute.js';

@@ -174,7 +174,7 @@ class ConfigLoader<T extends {}> {
     return this.config_;
   }
 
-  private config_: T;
+  private config_?: T;
 }
 
 export {ConfigLoader};

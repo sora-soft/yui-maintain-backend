@@ -17,16 +17,16 @@ export class AccountPassword {
   }
 
   @PrimaryColumn()
-  id: AccountId;
+  id!: AccountId;
 
   @Column({length: 64})
-  username: string;
+  username!: string;
 
   @Column({length: 128})
-  password: string;
+  password!: string;
 
   @Column({length: 64})
-  salt: string;
+  salt!: string;
 }
 
 @Entity()
@@ -44,16 +44,16 @@ export class AccountToken {
   }
 
   @PrimaryColumn()
-  session: string;
+  session!: string;
 
   @Column()
-  expireAt: Timestamp;
+  expireAt!: Timestamp;
 
   @Column()
-  accountId: AccountId;
+  accountId!: AccountId;
 
   @Column()
-  gid: AuthGroupId;
+  gid!: AuthGroupId;
 }
 
 @Entity({
@@ -73,29 +73,29 @@ export class Account {
   }
 
   @PrimaryGeneratedColumn()
-  id: AccountId;
+  id!: AccountId;
 
   @Column({length: 64})
-  nickname: string;
+  nickname!: string;
 
   @Column({length: 128})
   @IsEmail()
-  email: string;
+  email!: string;
 
   @OneToOne(() => AccountPassword, pass => pass.id, {createForeignKeyConstraints: false})
   @JoinColumn({name: 'id'})
-  userPass: AccountPassword;
+  userPass!: AccountPassword;
 
   @ManyToOne(() => AuthGroup)
   @JoinColumn({name: 'gid'})
-  group: AuthGroup;
+  group!: AuthGroup;
 
   @Column()
-  gid: AuthGroupId;
+  gid!: AuthGroupId;
 
   @Column()
-  createTime: Timestamp;
+  createTime!: Timestamp;
 
   @Column({default: false})
-  disabled: boolean;
+  disabled!: boolean;
 }

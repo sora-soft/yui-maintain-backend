@@ -15,7 +15,7 @@ class AliCloudComponent extends Component {
   }
 
   protected async connect() {
-    if (this.aliCloudOptions_.pop) {
+    if (this.aliCloudOptions_?.pop) {
       this.pop_ = new AliCloudPop({
         accessKeyId: this.aliCloudOptions_.accessKeyId,
         accessKeySecret: this.aliCloudOptions_.accessKeySecret,
@@ -37,8 +37,8 @@ class AliCloudComponent extends Component {
     return '0.0.0';
   }
 
-  private aliCloudOptions_: IAliCloudComponentOptions;
-  private pop_: AliCloudPop;
+  private aliCloudOptions_?: IAliCloudComponentOptions;
+  private pop_?: AliCloudPop;
 }
 
 export {AliCloudComponent};

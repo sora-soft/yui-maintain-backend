@@ -41,11 +41,15 @@ class ForwardRoute<T extends Service = Service> extends Route {
       switch (packet.opcode) {
         case OPCode.REQUEST: {
           const request = new Request(packet);
-          const response = new Response();
-          if (!packet.path)
+          const response = new Response<unknown>({
+            headers: {},
+            payload: {error: null, result: null},
+          });
+          if (!packet.service)
             this.makeErrorRPCResponse(request, response, new RPCResponseError(RPCErrorCode.ERR_RPC_METHOD_NOT_FOUND, ErrorLevel.EXPECTED, 'ERR_RPC_METHOD_NOT_FOUND'));
 
-          const [service, method] = packet.path?.split('/').slice(-2) as [ServiceName, string];
+          const service = request.service as ServiceName;
+          const method = request.method;
           const shouldForward = service !== route.service.name;
           const authorization = request.getHeader<string>(AuthRPCHeader.RPC_AUTHORIZATION);
           let token: AccountToken | null = null;
@@ -129,10 +133,11 @@ class ForwardRoute<T extends Service = Service> extends Route {
           notify.setHeader(AuthRPCHeader.RPC_ACCOUNT_ID, token?.accountId);
           Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method});
 
-          if (!packet.path)
+          if (!packet.service)
             return null;
 
-          const [service, method] = packet.path?.split('/').slice(-2) as [ServiceName, string];
+          const service = notify.service as ServiceName;
+          const method = notify.method;
           const shouldForward = service !== route.service.name;
 
           if (!shouldForward) {

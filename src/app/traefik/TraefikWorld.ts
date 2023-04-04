@@ -7,6 +7,9 @@ class TraefikWorld {
     const loadBalancerKey = EtcdKey.traefikConfigServiceUrl(prefix, protocol, name, listener.id);
 
     listener.stateEventEmitter.on(LifeCycleEvent.StateChangeTo, async (state) => {
+      if (!listener.info)
+        return;
+
       switch(state) {
         case ListenerState.READY: {
           await Com.etcd.lease.put(`${prefix}/${protocol}/services/${name}/loadBalancer/passHostHeader`).value('true').exec();
