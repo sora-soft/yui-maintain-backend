@@ -1,4 +1,4 @@
-import {Discovery, Provider, ProviderManager, TCPConnector, NodeHandler, Context, INodeRunData, RPCSender, ConnectorState, LifeCycleEvent, ExError, Logger, ProviderEvent, Route, DiscoveryNodeEvent, INodeMetaData, IServiceMetaData, IWorkerMetaData, IListenerMetaData, DiscoveryServiceEvent} from '@sora-soft/framework';
+import {Discovery, Provider, ProviderManager, TCPConnector, NodeHandler, Context, INodeRunData, RPCSender, ConnectorState, LifeCycleEvent, ExError, Logger, ProviderEvent, Route, DiscoveryNodeEvent, INodeMetaData, IServiceMetaData, IWorkerMetaData, IListenerMetaData, DiscoveryServiceEvent, DiscoveryWorkerEvent} from '@sora-soft/framework';
 import {Com} from '../../lib/Com.js';
 import {Application} from '../Application.js';
 import {RedisKey} from '../Keys.js';
@@ -52,8 +52,15 @@ class TargetCluster {
       this.deleteServiceMetaData(id);
     });
 
-
-    // this.discovery_.wor
+    this.discovery_.workerEmitter.on(DiscoveryWorkerEvent.WorkerCreated, (info) => {
+      this.setWorkerMetaData(info);
+    });
+    this.discovery_.workerEmitter.on(DiscoveryWorkerEvent.WorkerUpdated, (id, info) => {
+      this.setWorkerMetaData(info);
+    });
+    this.discovery_.workerEmitter.on(DiscoveryWorkerEvent.WorkerDeleted, (id) => {
+      this.deleteWorkerMetaData(id);
+    });
 
     this.providerManager_ = new ProviderManager(this.discovery_);
     TCPConnector.register(this.providerManager_);

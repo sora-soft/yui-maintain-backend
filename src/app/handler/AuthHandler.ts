@@ -64,6 +64,7 @@ export interface IReqForgetPassword {
 @ValidateClass()
 class AuthHandler extends AuthRoute {
   @Route.method
+  @AuthRoute.logined
   async fetchAccountList() {
     const list = await Com.businessDB.manager.find(Account, {
       select: ['id', 'nickname'],

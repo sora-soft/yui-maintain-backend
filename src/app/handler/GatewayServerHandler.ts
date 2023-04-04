@@ -43,7 +43,7 @@ class GatewayServerHandler extends ServiceRoute<HttpGatewayService> {
       }
       connector.sendNotify(new Notify({
         method: body.name,
-        path: body.name,
+        service: '',
         headers: {},
         payload: body.notify,
       })).catch((err: ExError) => {
