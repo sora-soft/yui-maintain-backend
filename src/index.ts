@@ -15,6 +15,8 @@ export interface IStartupOptions {
 
 export const container = async (options: IStartupOptions) => {
   const config = await loadConfig(options);
+  if (!config)
+    throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, 'ERR_LOAD_CONFIG');
   await Application.startLog(config.debug, config.logger).catch((err: ExError) => {
     // eslint-disable-next-line no-console
     console.log(`${err.name}: ${err.message}`);
@@ -29,6 +31,8 @@ export const container = async (options: IStartupOptions) => {
 
 export const server = async (options: IStartupOptions) => {
   const config = await loadConfig(options);
+  if (!config)
+    throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, 'ERR_LOAD_CONFIG');
   await Application.startLog(config.debug, config.logger).catch((err: ExError) => {
     // eslint-disable-next-line no-console
     console.log(`${err.name}: ${err.message}`);
@@ -43,6 +47,8 @@ export const server = async (options: IStartupOptions) => {
 
 export const command = async (options: IStartupOptions) => {
   const config = await loadConfig(options);
+  if (!config)
+    throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, 'ERR_LOAD_CONFIG');
   await Application.startOnlyAppLog(config.debug, config.logger).catch((err: ExError) => {
     // eslint-disable-next-line no-console
     console.log(`${err.name}: ${err.message}`);

@@ -17,21 +17,21 @@ export class AuthGroup {
   }
 
   @PrimaryGeneratedColumn('uuid')
-  id: AuthGroupId;
+  id!: AuthGroupId;
 
   @Column({
     length: 64,
   })
-  name: string;
+  name!: string;
 
   @OneToMany(() => AuthPermission, permission => permission.group)
   @JoinColumn({name: 'id'})
-  permissions: AuthPermission[];
+  permissions!: AuthPermission[];
 
   @Column({
     default: false,
   })
-  protected: boolean;
+  protected!: boolean;
 
   @Column({
     transformer: {
@@ -39,7 +39,7 @@ export class AuthGroup {
       from: (value?: number) => value,
     },
   })
-  createTime: Timestamp;
+  createTime!: Timestamp;
 }
 
 @Entity()
@@ -54,19 +54,19 @@ export class AuthPermission {
   }
 
   @PrimaryColumn('uuid')
-  gid: AuthGroupId;
+  gid!: AuthGroupId;
 
   @PrimaryColumn({
     length: 64,
   })
-  name: string;
+  name!: string;
 
   @Column({
     default: PermissionResult.DENY,
   })
-  permission: PermissionResult;
+  permission!: PermissionResult;
 
   @ManyToOne(() => AuthGroup, group => group.permissions)
   @JoinColumn({name: 'gid'})
-  group: AuthGroup;
+  group!: AuthGroup;
 }

@@ -12,10 +12,7 @@ class TargetCluster {
   constructor(discovery: Discovery, scope: string) {
     this.discovery_ = discovery;
     this.scope_ = scope;
-  }
-
-  async start(ctx?: Context) {
-    const context = this.startContext_ = new Context(ctx);
+    this.startContext_ = null;
 
     this.nodeRunningDataMap_ = new Map();
     this.nodeMetaMap_ = new Map();
@@ -23,6 +20,17 @@ class TargetCluster {
     this.serviceMetaMap_ = new Map();
     this.workerMetaMap_ = new Map();
     this.listenerMetaMap_ = new Map();
+  }
+
+  async start(ctx?: Context) {
+    const context = this.startContext_ = new Context(ctx);
+
+    this.nodeRunningDataMap_.clear();
+    this.nodeMetaMap_.clear();
+    this.senderMap_.clear();
+    this.serviceMetaMap_.clear();
+    this.workerMetaMap_.clear();
+    this.listenerMetaMap_.clear();
 
     await Com.businessRedis.client.del(RedisKey.targetClusterNodeRunData(this.scope_));
     await Com.businessRedis.client.del(RedisKey.targetClusterNodeMetaData(this.scope_));
@@ -84,8 +92,11 @@ class TargetCluster {
     if (this.startContext_) {
       this.startContext_.abort();
     }
-    await this.provider_.shutdown();
-    await this.providerManager_.stop();
+    if (this.provider_)
+      await this.provider_.shutdown();
+    if (this.providerManager_)
+      await this.providerManager_.stop();
+
     await this.discovery_.disconnect();
     await Com.businessRedis.client.del(RedisKey.targetClusterNodeRunData(this.scope_));
     await Com.businessRedis.client.del(RedisKey.targetClusterNodeMetaData(this.scope_));
@@ -103,8 +114,10 @@ class TargetCluster {
     sender.connector.stateEmitter.on(LifeCycleEvent.StateChangeTo, async (state) => {
       switch(state) {
         case ConnectorState.READY:
-          const data = await this.provider.rpc(null, sender.targetId).registerRunningDataNotify();
-          this.createNodeRunningData(data);
+          if (this.provider) {
+            const data = await this.provider.rpc(null, sender.targetId).registerRunningDataNotify();
+            this.createNodeRunningData(data);
+          }
           break;
       }
     });
@@ -239,15 +252,15 @@ class TargetCluster {
   }
 
   private discovery_: Discovery;
-  private providerManager_: ProviderManager;
-  private provider_: Provider<NodeHandler>;
+  private providerManager_?: ProviderManager;
+  private provider_?: Provider<NodeHandler>;
   private nodeRunningDataMap_: Map<string, INodeRunData>;
   private nodeMetaMap_: Map<string, INodeMetaData>;
   private serviceMetaMap_: Map<string, IServiceMetaData>;
   private workerMetaMap_: Map<string, IWorkerMetaData>;
   private listenerMetaMap_: Map<string, IListenerMetaData>;
-
   private senderMap_: Map<string, RPCSender>;
+
   private scope_: string;
   private startContext_: Context | null;
 }

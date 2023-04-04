@@ -14,6 +14,7 @@ class FileOutput extends LoggerOutput {
     this.fileOptions_ = options;
     const filename = moment().format(this.fileOptions_.fileFormat);
     this.createFileStream(filename).catch(Utility.null);
+    this.currentFileName_ = filename;
   }
 
   async output(data: ILoggerData) {
@@ -21,7 +22,9 @@ class FileOutput extends LoggerOutput {
     if (filename !== this.currentFileName_ || !this.stream_) {
       await this.createFileStream(filename);
     }
-    this.stream_.write(`${data.timeString},${data.level},${data.identify},${data.category},${data.position},${data.content}\n`);
+    if (this.stream_) {
+      this.stream_.write(`${data.timeString},${data.level},${data.identify},${data.category},${data.position},${data.content}\n`);
+    }
   }
 
   async createFileStream(filename: string) {
@@ -44,9 +47,9 @@ class FileOutput extends LoggerOutput {
   }
 
   private currentFileName_: string;
-  private stream_: fs.WriteStream;
+  private stream_?: fs.WriteStream;
   private fileOptions_: IFileOutputOptions;
-  private creatingPromise_: Promise<void> | null;
+  private creatingPromise_?: Promise<void> | null;
 }
 
 export {FileOutput};

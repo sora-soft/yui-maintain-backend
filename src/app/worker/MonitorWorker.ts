@@ -46,7 +46,7 @@ class MonitorWorker extends SingletonWorker {
   }
 
   private monitorOptions_: IMonitorWorkerOptions;
-  private target_: TargetCluster;
+  private target_?: TargetCluster;
 }
 
 export {MonitorWorker};
