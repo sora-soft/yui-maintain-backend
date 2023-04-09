@@ -194,9 +194,6 @@ class AuthHandler extends AuthRoute {
     if (!group)
       throw new UserError(UserErrorCode.ERR_AUTH_GROUP_NOT_FOUND, 'ERR_GROUP_NOT_FOUND');
 
-    if (group.protected)
-      throw new UserError(UserErrorCode.ERR_CANT_CREATE_ROOT, 'ERR_CANT_CREATE_ROOT');
-
     const account = await AccountWorld.createAccount({
       email: body.email,
       gid: body.gid,
