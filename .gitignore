@@ -127,3 +127,5 @@ run/*
 !run/config.template.yml
 !run/config-command.template.yml
 /dist*/
+
+build.sh

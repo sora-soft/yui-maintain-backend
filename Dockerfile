@@ -8,7 +8,7 @@ RUN apk add --no-cache git
 COPY package.json /app
 COPY package-lock.json /app
 
-RUN npm install --production
+RUN npm install
 
 COPY bin /app/bin
 COPY tsconfig.json /app
