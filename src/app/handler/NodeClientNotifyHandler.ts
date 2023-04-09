@@ -31,6 +31,7 @@ export interface INotifyMetaData<T> {
 
 
 export interface INotifyClusterUpdate {
+  scope: string;
   node?: INotifyMetaData<INodeMetaData>;
   service?: INotifyMetaData<IServiceMetaData>;
   worker?: INotifyMetaData<IWorkerMetaData>;

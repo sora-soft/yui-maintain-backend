@@ -1,4 +1,4 @@
-import {Context, IWorkerOptions, Node, SingletonWorker} from '@sora-soft/framework';
+import {Context, Discovery, IWorkerOptions, Node, Runtime, SingletonWorker} from '@sora-soft/framework';
 import {WorkerName} from './common/WorkerName.js';
 import {TargetCluster} from '../cluster/TargetCluster.js';
 import {Com} from '../../lib/Com.js';
@@ -30,23 +30,33 @@ class MonitorWorker extends SingletonWorker {
     await this.connectComponents([Com.businessRedis, Com.targetEtcd]);
     await this.registerProvider(Pvd.httpGateway);
 
-    const discovery = new ETCDDiscovery({
+    const discovery = this.targetDiscovery_ = new ETCDDiscovery({
       etcdComponentName: this.monitorOptions_.target.etcdComponentName,
       prefix: `${this.monitorOptions_.target.scope}`,
     });
     await discovery.connect(ctx);
     this.target_ = new TargetCluster(discovery, this.monitorOptions_.target.scope);
+    this.self_ = new TargetCluster(Runtime.discovery, Runtime.scope);
     await this.target_.start(ctx);
+    await this.self_.start();
   }
 
   protected async shutdown() {
+    if (this.targetDiscovery_) {
+      await this.targetDiscovery_.disconnect();
+    }
     if (this.target_) {
       await this.target_.stop();
+    }
+    if (this.self_) {
+      await this.self_.stop();
     }
   }
 
   private monitorOptions_: IMonitorWorkerOptions;
   private target_?: TargetCluster;
+  private targetDiscovery_?: Discovery;
+  private self_?: TargetCluster;
 }
 
 export {MonitorWorker};

@@ -2,58 +2,83 @@ import {IListenerMetaData, INodeMetaData, INodeRunData, IServiceMetaData, IWorke
 import {Com} from '../../lib/Com.js';
 import {RedisKey} from '../Keys.js';
 
+export interface INodeRunDataWithScope extends INodeRunData {
+  scope: string;
+}
+
+export interface INodeMetaDataWithScope extends INodeMetaData {
+  scope: string;
+}
+
+export interface IWorkerMetaDataWithScope extends IWorkerMetaData {
+  scope: string;
+}
+
+export interface IServiceMetaDataWithScope extends IServiceMetaData {
+  scope: string;
+}
+
+export interface IListenerMetaDataWithScope extends IListenerMetaData {
+  scope: string;
+}
+
 class MonitorWorld {
-  static async fetchClusterNodeRunData(scope: string) {
-    const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterNodeRunData(scope));
-    const result: INodeRunData[] = [];
-    for (const [_, str] of Object.entries(data)) {
-      result.push(JSON.parse(str) as INodeRunData);
+  static async fetchClusterNodeRunData(scopes: string[]) {
+    const result: INodeRunDataWithScope[] = [];
+    for (const scope of scopes) {
+      const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterNodeRunData(scope));
+      for (const [_, str] of Object.entries(data)) {
+        result.push({...JSON.parse(str), scope} as INodeRunDataWithScope);
+      }
     }
-
     return result;
   }
 
-  static async fetchClusterNodeMetaData(scope: string) {
-    const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterNodeMetaData(scope));
-    const result: INodeMetaData[] = [];
-    for (const [_, str] of Object.entries(data)) {
-      result.push(JSON.parse(str) as INodeMetaData);
+  static async fetchClusterNodeMetaData(scopes: string[]) {
+    const result: INodeMetaDataWithScope[] = [];
+    for (const scope of scopes) {
+      const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterNodeMetaData(scope));
+      for (const [_, str] of Object.entries(data)) {
+        result.push({...JSON.parse(str), scope} as INodeMetaDataWithScope);
+      }
     }
-
     return result;
   }
 
-  static async fetchClusterWorkerMetaData(scope: string) {
-    const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterWorkerMetaData(scope));
-    const result: IWorkerMetaData[] = [];
-    for (const [_, str] of Object.entries(data)) {
-      result.push(JSON.parse(str) as IWorkerMetaData);
+  static async fetchClusterWorkerMetaData(scopes: string[]) {
+    const result: IWorkerMetaDataWithScope[] = [];
+    for (const scope of scopes) {
+      const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterWorkerMetaData(scope));
+      for (const [_, str] of Object.entries(data)) {
+        result.push({...JSON.parse(str), scope} as IWorkerMetaDataWithScope);
+      }
     }
-
     return result;
   }
 
-  static async fetchClusterServiceMetaData(scope: string) {
-    const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterServiceMetaData(scope));
-    const result: IServiceMetaData[] = [];
-    for (const [_, str] of Object.entries(data)) {
-      result.push(JSON.parse(str) as IServiceMetaData);
+  static async fetchClusterServiceMetaData(scopes: string[]) {
+    const result: IServiceMetaDataWithScope[] = [];
+    for (const scope of scopes) {
+      const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterServiceMetaData(scope));
+      for (const [_, str] of Object.entries(data)) {
+        result.push({...JSON.parse(str), scope} as IServiceMetaDataWithScope);
+      }
     }
-
     return result;
   }
 
-  static async fetchClusterListenerMetaData(scope: string) {
-    const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterListenerMetaData(scope));
+  static async fetchClusterListenerMetaData(scopes: string[]) {
     const result: IListenerMetaData[] = [];
-    for (const [_, str] of Object.entries(data)) {
-      result.push(JSON.parse(str) as IListenerMetaData);
+    for (const scope of scopes) {
+      const data = await Com.businessRedis.client.hGetAll(RedisKey.targetClusterListenerMetaData(scope));
+      for (const [_, str] of Object.entries(data)) {
+        result.push({...JSON.parse(str), scope} as IListenerMetaData);
+      }
     }
-
     return result;
   }
 
-  static async fetchClusterData(scope: string) {
+  static async fetchClusterData(scope: string[]) {
     const nodeRunData = await this.fetchClusterNodeRunData(scope);
     const nodeMetaData = await this.fetchClusterNodeMetaData(scope);
     const workerMetaData = await this.fetchClusterWorkerMetaData(scope);
