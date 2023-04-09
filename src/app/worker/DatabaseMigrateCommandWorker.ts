@@ -7,6 +7,7 @@ import {WorkerName} from './common/WorkerName.js';
 import camelcase from 'camelcase';
 import fs = require('fs/promises');
 import path = require('path');
+import {fileURLToPath} from 'url';
 import moment from 'moment';
 import {mkdirp} from 'mkdirp';
 import {UserError} from '../UserError.js';
@@ -15,6 +16,12 @@ import {AppError} from '../AppError.js';
 import {ISoraConfig} from '../Types.js';
 import {TypeGuard} from '@sora-soft/type-guard';
 
+const FileName = fileURLToPath(import.meta.url);
+const Dirname = path.dirname(FileName);
+
+const soraConfig = JSON.parse(
+  await fs.readFile(path.resolve(Dirname, '../../../sora.json'), {encoding: 'utf-8'})
+) as ISoraConfig;
 
 export interface IDatabaseMigrateCommandWorkerOptions extends IWorkerOptions {
   components: ComponentName[];
@@ -42,9 +49,7 @@ class DatabaseMigrateCommandWorker extends Worker {
 
     switch (action) {
       case 'generate': {
-        const projectPath = path.resolve(__dirname, '../../../');
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const soraConfig = require(`${projectPath}/sora.json`) as ISoraConfig;
+        const projectPath = path.resolve(Dirname, '../../../');
         const migrationPath = soraConfig.migration;
         for (const name of this.options_.components) {
           const component: DatabaseComponent = Runtime.getComponent(name) ;
@@ -129,9 +134,7 @@ ${downSqls.reverse().join('\n')}
         }
 
         const options = component.options as IDatabaseComponentOptions;
-        const projectPath = path.resolve(__dirname, '../../../');
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const soraConfig = require(`${projectPath}/sora.json`) as ISoraConfig;
+        const projectPath = path.resolve(Dirname, '../../../');
         const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration);
 
         const files = await fs.readdir(path.join(migrationPath, componentName));
@@ -168,9 +171,7 @@ ${downSqls.reverse().join('\n')}
 
         const options = component.options as IDatabaseComponentOptions;
 
-        const projectPath = path.resolve(__dirname, '../../../');
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const soraConfig = require(`${projectPath}/sora.json`) as ISoraConfig;
+        const projectPath = path.resolve(Dirname, '../../../');
         const migrationPath = path.resolve(projectPath, soraConfig.dist, soraConfig.migration, componentName);
 
         const dataSource = new DataSource({
