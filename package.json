@@ -1,6 +1,6 @@
 {
   "name": "yui-maintain-backend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "maintain system for sora-based cluster",
   "bin": {
     "app-server": "./bin/cli.js"
