@@ -105,6 +105,12 @@ class ConfigLoader<T extends {}> {
     if (typeof config !== 'object')
       return config;
 
+    if (config === undefined)
+      return config;
+
+    if (config === null)
+      return config;
+
     const hiddenKeys: string[] = [];
     for (const [key, value] of Object.entries(config)) {
       if (key[key.length - 1] === PRIVATE_TOKEN) {
