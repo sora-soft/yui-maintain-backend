@@ -1,8 +1,7 @@
 import {Connector, Context, ExError, IServiceOptions, ITCPListenerOptions, ListenerEvent, Logger, Node, Route, Service, TCPListener} from '@sora-soft/framework';
 import {Pvd} from '../../lib/Provider.js';
 import {ServiceName} from './common/ServiceName.js';
-import Koa from '@sora-soft/http-support/koa';
-import {HTTPListener, IHTTPListenerOptions, IWebSocketListenerOptions, WebSocketListener} from '@sora-soft/http-support';
+import {IWebSocketListenerOptions, WebSocketListener} from '@sora-soft/http-support';
 import {GatewayHandler} from '../handler/GatewayHandler.js';
 import {ForwardRoute} from '../../lib/route/ForwardRoute.js';
 import {Com} from '../../lib/Com.js';
@@ -17,7 +16,6 @@ import {EtcdKey} from '../Keys.js';
 
 export interface IHttpGatewayOptions extends IServiceOptions {
   serverListener: ITCPListenerOptions;
-  httpListener: IHTTPListenerOptions;
   websocketListener: IWebSocketListenerOptions;
   skipAuthCheck?: boolean;
   traefik?: {
@@ -52,8 +50,6 @@ class HttpGatewayService extends Service {
       [ServiceName.Auth]: Pvd.auth,
       [ServiceName.Monitor]: Pvd.monitor,
     });
-    const koa = new Koa();
-    const httpListener = new HTTPListener(this.gatewayOptions_.httpListener, koa, ForwardRoute.callback(route), this.gatewayOptions_.httpListener.labels);
     const websocketListener = new WebSocketListener(this.gatewayOptions_.websocketListener, ForwardRoute.callback(route), this.gatewayOptions_.websocketListener.labels);
 
     websocketListener.connectionEmitter.on(ListenerEvent.NewConnect, (session, connector) => {
@@ -72,11 +68,9 @@ class HttpGatewayService extends Service {
 
     if (this.gatewayOptions_.traefik) {
       const nameInTraefik = `${this.gatewayOptions_.traefik.name || Application.appName.replace('@', '-')}:${this.name}`;
-      TraefikWorld.registerTraefikListener(this.gatewayOptions_.traefik.prefix, 'http', `${nameInTraefik}:http`, httpListener);
       TraefikWorld.registerTraefikListener(this.gatewayOptions_.traefik.prefix, 'http', `${nameInTraefik}:websocket`, websocketListener);
     }
 
-    await this.installListener(httpListener, ctx);
     await this.installListener(websocketListener, ctx);
     await this.installListener(serverListener, ctx);
   }
