@@ -4,19 +4,21 @@ import {AccountType} from '../../lib/Enum.js';
 import {RedisKey} from '../Keys.js';
 
 class AccountLock {
-  static registerLock<T>(type: AccountType, username: string, email: string, nickname: string, callback: () => Promise<T>): Promise<T> {
-    const lock = Com.businessRedis.createLock({});
-    return new Promise<T>((resolve, reject) => {
-      lock.lock(RedisKey.accountRegisterUsernameLock(type, username), NodeTime.second(1), async () => {
-        await lock.lock(RedisKey.accountRegisterEmailLock(type, email), NodeTime.second(1), async () => {
-          await lock.lock(RedisKey.accountRegisterNicknameLock(type, nickname), NodeTime.second(1), async () => {
-            resolve(callback());
-          });
-        });
-      }).catch((err) => {
-        reject(err);
-      });
-    });
+  static async registerLock<T>(type: AccountType, username: string, email: string, nickname: string, callback: () => Promise<T>): Promise<T> {
+    const redlock = Com.businessRedis.createLock({});
+    const lock = await redlock.lock([
+      RedisKey.accountRegisterUsernameLock(type, username),
+      RedisKey.accountRegisterEmailLock(type, email),
+      RedisKey.accountRegisterNicknameLock(type, nickname),
+    ], NodeTime.second(1));
+    try {
+      const result = await callback();
+      return result;
+    } catch (err) {
+      throw err;
+    } finally {
+      await lock.unlock();
+    }
   }
 }
 
