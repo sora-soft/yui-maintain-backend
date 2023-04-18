@@ -1,4 +1,4 @@
-import {Context, DiscoveryEvent, ExError, IServiceOptions, Logger, Node, Runtime, Service} from '@sora-soft/framework';
+import {Context, ExError, IServiceOptions, Logger, Node, Service} from '@sora-soft/framework';
 import {Pvd} from '../../lib/Provider.js';
 import {ServiceName} from './common/ServiceName.js';
 import Koa from '@sora-soft/http-support/koa';
@@ -10,6 +10,7 @@ import {AccountWorld} from '../account/AccountWorld.js';
 import {Application} from '../Application.js';
 import {TraefikWorld} from '../traefik/TraefikWorld.js';
 import {TypeGuard} from '@sora-soft/type-guard';
+import {EtcdEvent} from '@sora-soft/etcd-component';
 
 export interface IHttpGatewayOptions extends IServiceOptions {
   httpListener?: IHTTPListenerOptions;
@@ -54,7 +55,7 @@ class HttpGatewayService extends Service {
 
     this.registerTraefikListener();
 
-    Runtime.discovery.discoveryEmitter.on(DiscoveryEvent.DiscoveryReconnect, () => {
+    Com.etcd.emitter.on(EtcdEvent.LeaseReconnect, () => {
       if (this.gatewayOptions_.traefik) {
         const nameInTraefik = `${this.gatewayOptions_.traefik.name || Application.appName.replace('@', '-')}:${this.name}`;
         if (this.httpListener_) {
