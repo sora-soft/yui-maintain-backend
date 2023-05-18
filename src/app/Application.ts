@@ -1,5 +1,5 @@
 import {ETCDDiscovery} from '@sora-soft/etcd-discovery';
-import {AbortError, ConsoleOutput, ExError, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, Logger, LogLevel, Node, Runtime} from '@sora-soft/framework';
+import {AbortError, ConsoleOutput, Context, ExError, IComponentOptions, INodeOptions, IServiceOptions, IWorkerOptions, Logger, LogLevel, Node, Runtime} from '@sora-soft/framework';
 import {AppLogger} from './AppLogger.js';
 import {Pvd} from '../lib/Provider.js';
 import {ServiceRegister} from './service/common/ServiceRegister.js';
@@ -59,15 +59,15 @@ class Application {
   // 以容器模式启动
   // 在这种启动模式下，只会进行 Component 设定，不会启动任何 Service / Worker
   // 多用于集群启动
-  static async startContainer(options: IApplicationOptions) {
-    await this.start(options);
+  static async startContainer(options: IApplicationOptions, context: Context) {
+    await this.start(options, context);
   }
 
   // 以执行模式启动
   // 在这种启动模式下，只会启动指定的 Worker，在 Worker 执行完 runCommand 方法后自动退出
   // 多用于命令行启动
-  static async startCommand(options: IApplicationOptions, name: string, args: string[]) {
-    await this.start(options);
+  static async startCommand(options: IApplicationOptions, name: string, args: string[], context: Context) {
+    await this.start(options, context);
     if (!options.workers || !options.workers[name])
       throw new AppError(AppErrorCode.ERR_CONFIG_NOT_FOUND, `ERR_CONFIG_NOT_FOUND, works[${name}]`);
 
@@ -85,8 +85,8 @@ class Application {
   // 以配置模式启动
   // 在这种启动模式下，会启动配置文件中的所有 Service 与 Worker
   // 多用于调试启动
-  static async startServer(options: IApplicationOptions) {
-    await this.start(options);
+  static async startServer(options: IApplicationOptions, context: Context) {
+    await this.start(options, context);
 
     if (options.services) {
       for (const [name, serviceConfig] of Object.entries(options.services)) {
@@ -96,7 +96,7 @@ class Application {
           this.appLog.error('application', err, {event: 'create-service-error', error: Logger.errorMessage(err)});
           continue;
         }
-        Runtime.installService(service).catch((err: ExError) => {
+        Runtime.installService(service, context).catch((err: ExError) => {
           if (err instanceof AbortError) {
             return;
           }
@@ -113,7 +113,7 @@ class Application {
           this.appLog.error('application', err, {event: 'create-worker-error', error: Logger.errorMessage(err)});
           continue;
         }
-        Runtime.installWorker(worker).catch((err: ExError) => {
+        Runtime.installWorker(worker, context).catch((err: ExError) => {
           if (err instanceof AbortError) {
             return;
           }
@@ -162,7 +162,8 @@ class Application {
     this.appLog_.pipe(consoleOutput).pipe(fileOutput);
   }
 
-  private static async start(options: IApplicationOptions) {
+  private static async start(options: IApplicationOptions, ctx: Context) {
+    const context = new Context(ctx);
     this.config_ = options;
     Runtime.appVersion = pkg.version;
     try {
@@ -189,12 +190,13 @@ class Application {
       prefix: options.discovery.scope,
     });
     const node = new Node(options.node);
-    await Runtime.startup(node, discovery);
+    await Runtime.startup(node, discovery, context);
     this.appLog_.success('application', {event: 'app-start', versions: {runtime: Runtime.version}, processId: process.pid});
 
     ServiceRegister.init();
     WorkerRegister.init();
     Pvd.registerSenders();
+    context.complete();
   }
 }
 
