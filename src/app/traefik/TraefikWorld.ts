@@ -1,12 +1,16 @@
-import {LifeCycleEvent, Listener, ListenerState} from '@sora-soft/framework';
+import {Listener, ListenerState} from '@sora-soft/framework';
 import {Com} from '../../lib/Com.js';
 import {EtcdKey} from '../Keys.js';
+import {ExError} from '@sora-soft/framework';
+import {Application} from '../Application.js';
+import {Logger} from '@sora-soft/framework';
 
 class TraefikWorld {
   static registerTraefikListener(prefix: string, protocol: string, name: string, listener: Listener) {
-
-    listener.stateEventEmitter.on(LifeCycleEvent.StateChangeTo, async () => {
-      await this.updateTraefikListener(prefix, protocol, name, listener);
+    listener.stateSubject.subscribe(() => {
+      this.updateTraefikListener(prefix, protocol, name, listener).catch((err: ExError) => {
+        Application.appLog.error('traefik', err, {event: 'update-traefik-listener', error: Logger.errorMessage(err)});
+      });
     });
   }
 
