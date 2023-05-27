@@ -39,7 +39,7 @@ class HttpGatewayService extends Service {
     await this.connectComponents([Com.businessDB, Com.businessRedis, Com.etcd, Com.aliCloud], ctx);
     await this.registerProviders([Pvd.restful, Pvd.auth], ctx);
 
-    await AccountWorld.startup();
+    await ctx.await(AccountWorld.startup());
 
     const route = new GatewayHandler(this, {
       [ServiceName.Restful]: Pvd.restful,

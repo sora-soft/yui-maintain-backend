@@ -30,7 +30,7 @@ class ConfigLoader<T extends {}> {
   }
 
   async readURL(target: string) {
-    const response = await axios.default.get<unknown, AxiosResponse<{error: unknown}>>(target);
+    const response = await axios.get<unknown, AxiosResponse<{error: unknown}>>(target);
     if (response.status === 200 && !response.data.error) {
       return response.data as unknown as T;
     }
