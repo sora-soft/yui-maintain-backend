@@ -1,4 +1,4 @@
-import {Discovery, Provider, ProviderManager, TCPConnector, NodeHandler, Context, INodeRunData, RPCSender, ConnectorState, LifeCycleEvent, ExError, Logger, ProviderEvent, Route, DiscoveryNodeEvent, INodeMetaData, IServiceMetaData, IWorkerMetaData, IListenerMetaData, DiscoveryServiceEvent, DiscoveryWorkerEvent, DiscoveryListenerEvent} from '@sora-soft/framework';
+import {Discovery, Provider, ProviderManager, TCPConnector, NodeHandler, Context, INodeRunData, RPCSender, ExError, Logger, Route, INodeMetaData, IServiceMetaData, IWorkerMetaData, IListenerMetaData, SubscriptionManager, ConnectorState} from '@sora-soft/framework';
 import {Com} from '../../lib/Com.js';
 import {Application} from '../Application.js';
 import {RedisKey} from '../Keys.js';
@@ -21,6 +21,8 @@ class TargetCluster {
     this.serviceMetaMap_ = new Map();
     this.workerMetaMap_ = new Map();
     this.listenerMetaMap_ = new Map();
+
+    this.subManager_ = new SubscriptionManager();
   }
 
   async start(ctx?: Context) {
@@ -49,57 +51,72 @@ class TargetCluster {
       this.setListenerMetaData(listener);
     }
 
-    this.discovery_.nodeEmitter.on(DiscoveryNodeEvent.NodeCreated, (info) => {
-      this.setNodeMetaData(info);
-    });
-    this.discovery_.nodeEmitter.on(DiscoveryNodeEvent.NodeUpdated, (id, info) => {
-      this.setNodeMetaData(info);
-    });
-    this.discovery_.nodeEmitter.on(DiscoveryNodeEvent.NodeDeleted, (id) => {
-      this.deleteNodeMetaData(id);
-    });
+    const nodeSub = this.discovery_.nodeSubject.subscribe((nodes) => {
+      for (const [id, node] of this.nodeMetaMap_) {
+        if (nodes.every(n => n.id !== node.id))
+          this.deleteNodeMetaData(id);
+      }
 
-    this.discovery_.serviceEmitter.on(DiscoveryServiceEvent.ServiceCreated, (info) => {
-      this.setServiceMetaData(info);
+      for (const node of nodes) {
+        this.setNodeMetaData(node);
+      }
     });
-    this.discovery_.serviceEmitter.on(DiscoveryServiceEvent.ServiceUpdated, (id, info) => {
-      this.setServiceMetaData(info);
-    });
-    this.discovery_.serviceEmitter.on(DiscoveryServiceEvent.ServiceDeleted, (id) => {
-      this.deleteServiceMetaData(id);
-    });
+    this.subManager_.register(nodeSub);
 
-    this.discovery_.workerEmitter.on(DiscoveryWorkerEvent.WorkerCreated, (info) => {
-      this.setWorkerMetaData(info);
-    });
-    this.discovery_.workerEmitter.on(DiscoveryWorkerEvent.WorkerUpdated, (id, info) => {
-      this.setWorkerMetaData(info);
-    });
-    this.discovery_.workerEmitter.on(DiscoveryWorkerEvent.WorkerDeleted, (id) => {
-      this.deleteWorkerMetaData(id);
-    });
+    const serviceSub = this.discovery_.serviceSubject.subscribe((services) => {
+      for (const [id, service] of this.serviceMetaMap_) {
+        if (services.every(n => n.id !== service.id))
+          this.deleteServiceMetaData(id);
+      }
 
-    this.discovery_.listenerEmitter.on(DiscoveryListenerEvent.ListenerCreated, (info) => {
-      this.setListenerMetaData(info);
+      for (const service of services) {
+        this.setServiceMetaData(service);
+      }
     });
-    this.discovery_.listenerEmitter.on(DiscoveryListenerEvent.ListenerUpdated, (id, info) => {
-      this.setListenerMetaData(info);
+    this.subManager_.register(serviceSub);
+
+    const workerSub = this.discovery_.workerSubject.subscribe((workers) => {
+      for (const [id, worker] of this.workerMetaMap_) {
+        if (workers.every(n => n.id !== worker.id))
+          this.deleteWorkerMetaData(id);
+      }
+
+      for (const worker of workers) {
+        this.setWorkerMetaData(worker);
+      }
     });
-    this.discovery_.listenerEmitter.on(DiscoveryListenerEvent.ListenerDeleted, (id) => {
-      this.deleteListenerMetaData(id);
+    this.subManager_.register(workerSub);
+
+    const listenerSub = this.discovery_.listenerSubject.subscribe((listeners) => {
+      for (const [id, listener] of this.listenerMetaMap_) {
+        if (listeners.every(n => n.id !== listener.id))
+          this.deleteListenerMetaData(id);
+      }
+
+      for (const listener of listeners) {
+        this.setListenerMetaData(listener);
+      }
     });
+    this.subManager_.register(listenerSub);
 
     this.providerManager_ = new ProviderManager(this.discovery_);
     TCPConnector.register(this.providerManager_);
-    await this.providerManager_.start(context);
 
     const notifyHandler = new NodeNotifyHandler(this);
     this.provider_ = new Provider(ServiceName.Node, undefined, this.providerManager_, Route.callback(notifyHandler));
-    this.provider_.senderEmitter.on(ProviderEvent.NewSender, async (sender) => {
-      this.registerNodeSender(sender);
-    });
-    this.provider_.senderEmitter.on(ProviderEvent.RemoveSender, async (id) => {
-      this.unregisterNodeSender(id);
+
+    this.provider_.senderSubject.subscribe((senders) => {
+      for (const [id, sender] of this.senderMap_) {
+        if (senders.every(s => s.listenerId !== sender.listenerId)) {
+          this.unregisterNodeSender(id);
+        }
+      }
+
+      for (const sender of senders) {
+        if (this.senderMap_.has(sender.listenerId))
+          continue;
+        this.registerNodeSender(sender);
+      }
     });
     await this.provider_.startup(context);
 
@@ -113,8 +130,6 @@ class TargetCluster {
       this.startContext_.abort();
     if (this.provider_)
       await this.provider_.shutdown();
-    if (this.providerManager_)
-      await this.providerManager_.stop();
 
     this.nodeRunDataMap_.clear();
     this.nodeMetaMap_.clear();
@@ -139,7 +154,7 @@ class TargetCluster {
 
   registerNodeSender(sender: RPCSender) {
     this.senderMap_.set(sender.listenerId, sender);
-    sender.connector.stateEmitter.on(LifeCycleEvent.StateChangeTo, async (state) => {
+    sender.connector.stateSubject.subscribe(async (state) => {
       switch(state) {
         case ConnectorState.READY:
           if (this.provider) {
@@ -318,6 +333,7 @@ class TargetCluster {
 
   private scope_: string;
   private startContext_: Context | null;
+  private subManager_: SubscriptionManager;
 }
 
 export {TargetCluster};

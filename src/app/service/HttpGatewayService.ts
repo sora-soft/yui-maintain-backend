@@ -1,4 +1,4 @@
-import {Connector, Context, ExError, IServiceOptions, ITCPListenerOptions, ListenerEvent, Logger, Node, Route, Service, TCPListener} from '@sora-soft/framework';
+import {Connector, Context, ExError, IServiceOptions, ITCPListenerOptions, ListenerConnectionEventType, Logger, Node, Route, Service, TCPListener} from '@sora-soft/framework';
 import {Pvd} from '../../lib/Provider.js';
 import {ServiceName} from './common/ServiceName.js';
 import {IWebSocketListenerOptions, WebSocketListener} from '@sora-soft/http-support';
@@ -43,7 +43,7 @@ class HttpGatewayService extends Service {
     await this.connectComponents([Com.businessDB, Com.businessRedis, Com.etcd, Com.aliCloud], ctx);
     await this.registerProviders([Pvd.restful, Pvd.auth, Pvd.monitor], ctx);
 
-    await AccountWorld.startup();
+    await ctx.await(AccountWorld.startup());
 
     const route = new GatewayHandler(this, {
       [ServiceName.Restful]: Pvd.restful,
@@ -52,15 +52,20 @@ class HttpGatewayService extends Service {
     });
     const websocketListener = new WebSocketListener(this.gatewayOptions_.websocketListener, ForwardRoute.callback(route), this.gatewayOptions_.websocketListener.labels);
 
-    websocketListener.connectionEmitter.on(ListenerEvent.NewConnect, (session, connector) => {
-      this.avaliableConnector_.set(session, connector);
-    });
-
-    websocketListener.connectionEmitter.on(ListenerEvent.LostConnect, async (session) => {
-      await this.unregisterAllNotify(session).catch((err: ExError) => {
-        Application.appLog.warn('gateway', {event: 'unregister-notify-error', error: Logger.errorMessage(err)});
-      });
-      this.avaliableConnector_.delete(session);
+    websocketListener.connectionSubject.subscribe(async (event) => {
+      switch (event.type) {
+        case ListenerConnectionEventType.LostConnection: {
+          await this.unregisterAllNotify(event.session).catch((err: ExError) => {
+            Application.appLog.warn('gateway', {event: 'unregister-notify-error', error: Logger.errorMessage(err)});
+          });
+          this.avaliableConnector_.delete(event.session);
+          break;
+        }
+        case ListenerConnectionEventType.NewConnection: {
+          this.avaliableConnector_.set(event.session, event.connector);
+          break;
+        }
+      }
     });
 
     const serverRoute = new GatewayServerHandler(this);

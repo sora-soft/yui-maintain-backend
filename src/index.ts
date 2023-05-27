@@ -3,7 +3,7 @@ import {Application, IApplicationOptions} from './app/Application.js';
 import {ConfigLoader} from './lib/ConfigLoader.js';
 import path = require('path');
 import 'reflect-metadata';
-import {ExError, Logger, Runtime} from '@sora-soft/framework';
+import {Context, ExError, Logger, Runtime} from '@sora-soft/framework';
 import {AppError} from './app/AppError.js';
 import {AppErrorCode} from './app/ErrorCode.js';
 
@@ -14,6 +14,7 @@ export interface IStartupOptions {
 }
 
 export const container = async (options: IStartupOptions) => {
+  const context = new Context();
   const config = await loadConfig(options);
   if (!config)
     throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, 'ERR_LOAD_CONFIG');
@@ -22,14 +23,17 @@ export const container = async (options: IStartupOptions) => {
     console.log(`${err.name}: ${err.message}`);
     process.exit(1);
   });
-  await Application.startContainer(config).catch(async (err: ExError) => {
+  await Application.startContainer(config, context).catch(async (err: ExError) => {
     Application.appLog.fatal('start', err, {error: Logger.errorMessage(err)});
+    context.abort();
     await Runtime.shutdown();
     process.exit(1);
   });
+  context.complete();
 };
 
 export const server = async (options: IStartupOptions) => {
+  const context = new Context();
   const config = await loadConfig(options);
   if (!config)
     throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, 'ERR_LOAD_CONFIG');
@@ -38,14 +42,17 @@ export const server = async (options: IStartupOptions) => {
     console.log(`${err.name}: ${err.message}`);
     process.exit(1);
   });
-  await Application.startServer(config).catch(async (err: ExError) => {
+  await Application.startServer(config, context).catch(async (err: ExError) => {
     Application.appLog.fatal('start', err, {error: Logger.errorMessage(err)});
+    context.abort();
     await Runtime.shutdown();
     process.exit(1);
   });
+  context.complete();
 };
 
 export const command = async (options: IStartupOptions) => {
+  const context = new Context();
   const config = await loadConfig(options);
   if (!config)
     throw new AppError(AppErrorCode.ERR_LOAD_CONFIG, 'ERR_LOAD_CONFIG');
@@ -61,11 +68,12 @@ export const command = async (options: IStartupOptions) => {
   if (!options.arguments)
     throw new AppError(AppErrorCode.ERR_COMMAND_NOT_FOUND, 'ERR_COMMAND_NOT_FOUND');
 
-  await Application.startCommand(config, options.name, options.arguments).catch(async (err: ExError) => {
+  await Application.startCommand(config, options.name, options.arguments, context).catch(async (err: ExError) => {
     Application.appLog.fatal('run-command', err, {error: Logger.errorMessage(err)});
     await Runtime.shutdown();
     process.exit(1);
   });
+  context.complete();
   process.exit(0);
 };
 
