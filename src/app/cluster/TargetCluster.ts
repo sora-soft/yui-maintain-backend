@@ -137,6 +137,7 @@ class TargetCluster {
     this.serviceMetaMap_.clear();
     this.workerMetaMap_.clear();
     this.listenerMetaMap_.clear();
+    this.subManager_.destory();
 
     await Com.businessRedis.client.del(RedisKey.targetClusterNodeRunData(this.scope_));
     await Com.businessRedis.client.del(RedisKey.targetClusterNodeMetaData(this.scope_));

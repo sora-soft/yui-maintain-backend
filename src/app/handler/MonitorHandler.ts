@@ -35,7 +35,7 @@ class MonitorHandler extends AuthRoute<MonitorService> {
       throw err;
     });
 
-    const data = await MonitorWorld.fetchClusterData([this.service.targetScope, Runtime.scope]);
+    const data = await MonitorWorld.fetchClusterData([...this.service.targetScopes, Runtime.scope]);
     return data;
   }
 

@@ -8,7 +8,8 @@ import {Pvd} from '../../lib/Provider.js';
 
 export interface IMonitorOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
-  targetScope: string;
+  // targetScope: string;
+  targetScopes: string[];
 }
 
 class MonitorService extends Service {
@@ -25,7 +26,7 @@ class MonitorService extends Service {
   }
 
   protected async startup(ctx: Context) {
-    await this.connectComponents([Com.businessDB, Com.businessRedis, Com.targetEtcd], ctx);
+    await this.connectComponents([Com.businessDB, Com.businessRedis], ctx);
     await this.registerProvider(Pvd.httpGateway);
 
     const route = new MonitorHandler(this);
@@ -35,8 +36,8 @@ class MonitorService extends Service {
 
   protected async shutdown() {}
 
-  get targetScope() {
-    return this.monitorOptions_.targetScope;
+  get targetScopes() {
+    return this.monitorOptions_.targetScopes;
   }
 
   private monitorOptions_: IMonitorOptions;

@@ -34,7 +34,7 @@ node:
     portRange:
       - $(portRangeMin)
       - $(portRangeMax)
-    host: $(host)
+    host: 0.0.0.0
     exposeHost: $(exposeHost)
 
 services:
@@ -80,7 +80,8 @@ services:
         - $(portRangeMin)
         - $(portRangeMax)
       host: $(host)
-    targetScope: $(targetScope)
+    targetScopes:
+      - $(targetScope)
 
 components:
   business-redis:
@@ -114,6 +115,11 @@ components:
 
 workers:
   monitor:
-    target:
-      etcdComponentName: 'target-etcd'
+    targets:
+    - etcd:
+        etcd:
+          hosts:
+          - $(targetEtcdHost)
+        ttl: 10
+        prefix: $(targetScope)
       scope: $(targetScope)
