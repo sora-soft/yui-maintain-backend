@@ -4,4 +4,5 @@ export enum ServiceName {
   Auth = 'auth',
   Monitor = 'monitor',
   Node = 'node',
+  Config = 'config',
 }

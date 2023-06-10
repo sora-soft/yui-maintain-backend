@@ -39,12 +39,6 @@ node:
 
 services:
   http-gateway:
-    httpListener:
-      portRange:
-        - $(portRangeMin)
-        - $(portRangeMax)
-      host: 0.0.0.0
-      exposeHost: $(exposeHost)
     websocketListener:
       portRange:
         - $(portRangeMin)
@@ -82,6 +76,12 @@ services:
       host: $(host)
     targetScopes:
       - $(targetScope)
+
+  config:
+    httpListener:
+      port: 9010
+      host: 0.0.0.0
+      exposeHost: $(exposeHost)
 
 components:
   business-redis:

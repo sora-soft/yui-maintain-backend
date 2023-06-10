@@ -5,6 +5,7 @@ import {EtcdComponent} from '@sora-soft/etcd-component';
 import {AuthGroup, AuthPermission} from '../app/database/Auth.js';
 import {AliCloudComponent} from '../com/alicloud/AliCloudComponent.js';
 import {Runtime} from '@sora-soft/framework';
+import {ConfigFile} from '../app/database/Config.js';
 
 export enum ComponentName {
   BusinessRedis = 'business-redis',
@@ -25,6 +26,7 @@ class Com {
 
   static businessDB = new DatabaseComponent([
     Account, AccountPassword, AuthGroup, AuthPermission, AccountToken,
+    ConfigFile,
   ]);
 
   static etcd = new EtcdComponent();

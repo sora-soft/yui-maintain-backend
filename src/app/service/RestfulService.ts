@@ -5,6 +5,7 @@ import {Account} from '../database/Account.js';
 import {AuthGroup, AuthPermission} from '../database/Auth.js';
 import {RestfulHandler} from '../handler/RestfulHandler.js';
 import {ServiceName} from './common/ServiceName.js';
+import {ConfigFile} from '../database/Config.js';
 
 export interface IRestfulOptions extends IServiceOptions {
   tcpListener: ITCPListenerOptions;
@@ -42,6 +43,11 @@ class RestfulService extends Service {
         name: 'auth-permission',
         com: Com.businessDB,
         entity: AuthPermission,
+      },
+      {
+        name: 'config-file',
+        com: Com.businessDB,
+        entity: ConfigFile,
       },
     ]);
     const listener = new TCPListener(this.restfulConfig_.tcpListener, Route.callback(route));
