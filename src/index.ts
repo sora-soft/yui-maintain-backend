@@ -79,11 +79,12 @@ export const command = async (options: IStartupOptions) => {
 
 const loadConfig = async (options: IStartupOptions) => {
   const configLoader = new ConfigLoader<IApplicationOptions>();
-  const configPath = options.config;
-  if (path.isAbsolute(configPath)) {
-    await configLoader.load(options.config);
-  } else {
-    await configLoader.load(path.resolve(process.cwd(), options.config));
-  }
+  // const configPath = options.config;
+  await configLoader.load(options.config);
+  // if (path.isAbsolute(configPath)) {
+  //   await configLoader.load(options.config);
+  // } else {
+  //   await configLoader.load(path.resolve(process.cwd(), options.config));
+  // }
   return configLoader.getConfig();
 };
