@@ -43,7 +43,7 @@
   "dependencies": {
     "@alicloud/pop-core": "^1.7.10",
     "@sora-soft/database-component": "^1.6.2",
-    "@sora-soft/etcd-component": "^1.2.3",
+    "@sora-soft/etcd-component": "^1.2.5",
     "@sora-soft/etcd-discovery": "^1.4.1",
     "@sora-soft/framework": "^1.12.2",
     "@sora-soft/http-support": "^1.5.2",

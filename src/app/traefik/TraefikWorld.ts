@@ -22,7 +22,7 @@ class TraefikWorld {
 
     switch(listener.state) {
       case ListenerState.READY: {
-        await Com.etcd.lease.put(`${prefix}/${protocol}/services/${name}/loadBalancer/passHostHeader`).value('true').exec();
+        await Com.etcd.persistPut(`${prefix}/${protocol}/services/${name}/loadBalancer/passHostHeader`, 'true');
         let serverUrl = '';
         switch (protocol) {
           case 'tcp':
@@ -37,12 +37,12 @@ class TraefikWorld {
             }
             break;
         }
-        await Com.etcd.lease.put(loadBalancerKey).value(serverUrl).exec();
+        await Com.etcd.persistPut(loadBalancerKey, serverUrl);
         break;
       }
       default: {
         if (listener.info) {
-          await Com.etcd.client.delete().key(loadBalancerKey).exec();
+          await Com.etcd.persistDel(loadBalancerKey);
         }
         break;
       }
