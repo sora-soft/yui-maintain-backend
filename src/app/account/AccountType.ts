@@ -9,6 +9,11 @@ export enum PermissionResult {
   DENY = 2,
 }
 
+export enum AccountLoginType {
+  USERNAME = 1,
+  EMAIL = 2,
+}
+
 // 默认游客 gid
 export const GuestGroupId: AuthGroupId = 'd36a956b-7494-480c-8bd9-66b77c89a38c';
 

@@ -1,15 +1,13 @@
 import {NodeTime} from '@sora-soft/framework';
 import {Com} from '../../lib/Com.js';
-import {AccountType} from '../../lib/Enum.js';
 import {RedisKey} from '../Keys.js';
+import {AccountLoginType} from './AccountType.js';
 
 class AccountLock {
-  static async registerLock<T>(type: AccountType, username: string, email: string, nickname: string, callback: () => Promise<T>): Promise<T> {
+  static async registerLock<T>(type: AccountLoginType, username: string, callback: () => Promise<T>): Promise<T> {
     const redlock = Com.businessRedis.createLock({});
     const lock = await redlock.lock([
-      RedisKey.accountRegisterUsernameLock(type, username),
-      RedisKey.accountRegisterEmailLock(type, email),
-      RedisKey.accountRegisterNicknameLock(type, nickname),
+      RedisKey.accountRegisterLock(type, username),
     ], NodeTime.second(1));
     try {
       const result = await callback();

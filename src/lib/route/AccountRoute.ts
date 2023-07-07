@@ -7,7 +7,7 @@ import {Com} from '../Com.js';
 import {AuthRPCHeader} from '../Const.js';
 
 interface IAccountOptions {
-  relations?: FindOptionsRelations<Pick<Account, 'userPass'>>;
+  relations?: FindOptionsRelations<Pick<Account, 'group'>>;
 }
 
 class AccountRoute extends Route {

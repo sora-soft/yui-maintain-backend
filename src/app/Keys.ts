@@ -1,4 +1,4 @@
-import {AccountType} from '../lib/Enum.js';
+import {AccountLoginType} from './account/AccountType.js';
 
 export class EtcdKey {
   static traefikConfigServiceUrl(prefix: string, protocol: string, name: string, index: string) {
@@ -7,16 +7,12 @@ export class EtcdKey {
 }
 
 export class RedisKey {
-  static accountRegisterUsernameLock(type: AccountType, username: string) {
-    return `lock:account-register:${type}:username:${username}`;
+  static accountRegisterLock(type: AccountLoginType, username: string) {
+    return `lock:account-register:${type}:${username}`;
   }
 
-  static accountRegisterEmailLock(type: AccountType, email: string) {
-    return `lock:account-register:${type}:email:${email}`;
-  }
-
-  static accountRegisterNicknameLock(type: AccountType, nickname: string) {
-    return `lock:account-register:${type}:nickname:${nickname}`;
+  static tarotAnswerLock(id: string) {
+    return `lock:tarot-answer:${id}`;
   }
 
   static accountSession(session: string) {
@@ -25,5 +21,9 @@ export class RedisKey {
 
   static resetPasswordCode(code: string) {
     return `code:${code}:reset-password-code`;
+  }
+
+  static suggestionQuestions() {
+    return 'tarot:suggestion-questions:list';
   }
 }

@@ -4,10 +4,10 @@ import {Com} from '../../lib/Com.js';
 import {AccountRoute} from '../../lib/route/AccountRoute.js';
 import {AuthRoute} from '../../lib/route/AuthRoute.js';
 import {Random, Util} from '../../lib/Utility.js';
-import {AccountId, AuthGroupId, PermissionResult} from '../account/AccountType.js';
+import {AccountId, AccountLoginType, AuthGroupId, PermissionResult} from '../account/AccountType.js';
 import {AccountWorld} from '../account/AccountWorld.js';
 import {Application} from '../Application.js';
-import {Account, AccountToken} from '../database/Account.js';
+import {Account, AccountLogin, AccountToken} from '../database/Account.js';
 import {AuthGroup, AuthPermission} from '../database/Auth.js';
 import {UserErrorCode} from '../ErrorCode.js';
 import {RedisKey} from '../Keys.js';
@@ -25,7 +25,6 @@ export interface IReqUpdateAccount {
   accountId: AccountId;
   gid?: AuthGroupId;
   nickname?: string;
-  email?: string;
 }
 
 export interface IReqDisableAccount {
@@ -112,10 +111,6 @@ class AuthHandler extends AuthRoute {
   @AccountRoute.account()
   async updateAccount(@AssertType() body: IReqUpdateAccount, account: Account) {
     await Com.businessDB.manager.transaction(async (manager) => {
-      if (Util.isMeaningful(body.email)) {
-        account.email = body.email;
-      }
-
       if (Util.isMeaningful(body.gid)) {
         account.gid = body.gid;
         await manager.update(AccountToken, {accountId: account.id}, {gid: body.gid});
@@ -195,10 +190,10 @@ class AuthHandler extends AuthRoute {
       throw new UserError(UserErrorCode.ERR_AUTH_GROUP_NOT_FOUND, 'ERR_GROUP_NOT_FOUND');
 
     const account = await AccountWorld.createAccount({
-      email: body.email,
       gid: body.gid,
       nickname: body.nickname,
     }, {
+      type: AccountLoginType.USERNAME,
       username: body.username,
       password: body.password,
     });
@@ -227,8 +222,9 @@ class AuthHandler extends AuthRoute {
 
   @Route.method
   async requestForgetPassword(@AssertType() body: IReqRequestForgetPassword) {
-    const account = await Com.businessDB.manager.findOneBy(Account, {
-      email: body.email,
+    const account = await Com.businessDB.manager.findOneBy(AccountLogin, {
+      type: AccountLoginType.EMAIL,
+      username: body.email,
     });
 
     if (!account)
