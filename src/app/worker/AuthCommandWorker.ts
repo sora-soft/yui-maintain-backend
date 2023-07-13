@@ -1,6 +1,6 @@
 import {IWorkerOptions, Node, Worker} from '@sora-soft/framework';
 import {Com} from '../../lib/Com.js';
-import {RootGroupId} from '../account/AccountType.js';
+import {AccountLoginType, RootGroupId} from '../account/AccountType.js';
 import {AccountWorld} from '../account/AccountWorld.js';
 import {WorkerName} from './common/WorkerName.js';
 import md5 from 'md5';
@@ -25,7 +25,7 @@ class AuthCommandWorker extends Worker {
   }
 
   protected async startup() {
-    await this.connectComponents([Com.businessDB]);
+    await this.connectComponents([Com.businessDB, Com.businessRedis]);
     await AccountWorld.startup();
   }
 
@@ -39,18 +39,18 @@ class AuthCommandWorker extends Worker {
 
     switch (action) {
       case 'create-root': {
-        const [username, password, email] = args;
+        const [username, password] = args;
 
         const md5Password = md5(password);
 
         await AccountWorld.createAccount({
           nickname: username,
-          email,
           gid: RootGroupId,
-        }, {
+        }, [{
+          type: AccountLoginType.USERNAME,
           username,
           password: md5Password,
-        });
+        }]);
         break;
       }
       default: {
