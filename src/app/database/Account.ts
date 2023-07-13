@@ -31,7 +31,7 @@ export class AccountToken {
 }
 
 @Entity()
-@Index('username_idx', ['username'], {unique: true})
+@Index('type_username_idx', ['type', 'username'], {unique: true})
 export class AccountLogin {
   constructor(data?: Partial<AccountLogin>) {
     if (!data)
@@ -45,6 +45,9 @@ export class AccountLogin {
   @PrimaryColumn()
   id!: AccountId;
 
+  @PrimaryColumn()
+  type!: AccountLoginType;
+
   @Column({length: 64})
   username!: string;
 
@@ -54,8 +57,7 @@ export class AccountLogin {
   @Column({length: 64})
   salt!: string;
 
-  @Column()
-  type!: AccountLoginType;
+
 }
 
 @Entity({

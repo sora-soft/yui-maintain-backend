@@ -192,11 +192,15 @@ class AuthHandler extends AuthRoute {
     const account = await AccountWorld.createAccount({
       gid: body.gid,
       nickname: body.nickname,
-    }, {
+    }, [{
       type: AccountLoginType.USERNAME,
       username: body.username,
       password: body.password,
-    });
+    }, {
+      type: AccountLoginType.EMAIL,
+      username: body.email,
+      password: body.password,
+    }]);
 
     return {
       id: account.id,
@@ -213,7 +217,11 @@ class AuthHandler extends AuthRoute {
 
     await Com.businessDB.manager.transaction(async (manager) => {
       await AccountWorld.resetAccountPassword(account, body.password, manager);
-      await AccountWorld.deleteAccountSessionByAccountIdExcept(account.id, token.session, manager);
+      if (body.id === token.accountId) {
+        await AccountWorld.deleteAccountSessionByAccountIdExcept(account.id, token.session, manager);
+      } else {
+        await AccountWorld.deleteAccountSessionByAccountId(account.id, manager);
+      }
     });
     Application.appLog.info('account-world', {event: 'reset-password', accountId: account.id, method: 'resetPassword'});
 

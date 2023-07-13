@@ -11,7 +11,7 @@ import {Application} from '../Application.js';
 import {AccountLock} from './AccountLock.js';
 import {ForgetPasswordEmail} from './AccountEmail.js';
 import {NodeTime, UnixTime} from '@sora-soft/framework';
-import {EntityManager, LessThan, Not, MoreThan} from '@sora-soft/database-component/typeorm';
+import {EntityManager, LessThan, Not, MoreThan, In} from '@sora-soft/database-component/typeorm';
 import {transaction} from '../database/utility/Decorators.js';
 import {v4 as uuid} from 'uuid';
 
@@ -81,7 +81,7 @@ class AccountWorld {
   static async deleteAccountSessionByAccountIdExcept(accountId: AccountId, token: string, manager?: EntityManager) {
     return manager!.delete(AccountToken, {
       accountId,
-      token: Not(token),
+      session: Not(token),
     });
   }
 
@@ -118,7 +118,7 @@ class AccountWorld {
   static async resetAccountPassword(account: Account, password: string, manager?: EntityManager) {
     const salt = Random.randomString(20);
     const hashedPassword = Hash.md5(password + salt);
-    await manager!.update(AccountLogin, {id: account.id, type: AccountLoginType.USERNAME}, {
+    await manager!.update(AccountLogin, {id: account.id, type: In([AccountLoginType.USERNAME, AccountLoginType.EMAIL])}, {
       password: hashedPassword,
       salt,
     });
@@ -141,25 +141,21 @@ class AccountWorld {
     return Com.businessRedis.getJSON<{accountId: AccountId; code: string}>(RedisKey.resetPasswordCode(id));
   }
 
-  static async createAccount(account: Pick<Account, 'avatarUrl' | 'gid' | 'nickname'>, login: Pick<AccountLogin, 'type' | 'username' | 'password'>) {
-    return AccountLock.registerLock(login.type, login.username, async () => {
+  static async createAccount(account: Pick<Account, 'avatarUrl' | 'gid' | 'nickname'>, loginList: Pick<AccountLogin, 'type' | 'username' | 'password'>[]) {
+    return AccountLock.registerLock(loginList, async () => {
       const loginExisted = await Com.businessDB.manager.count(AccountLogin, {
-        where: {
-          type: login.type,
-          username: login.username,
-        },
+        where: loginList.map(login => {
+          return {
+            type: login.type,
+            username: login.username,
+          };
+        }),
       });
 
       if (loginExisted)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_REGISTER, 'ERR_DUPLICATE_REGISTER');
 
-      const salt = Random.randomString(20);
-      const accountLogin = new AccountLogin({
-        type: login.type,
-        username: login.username,
-        salt,
-        password: Hash.md5(login.password + salt),
-      });
+
       const newAccount = new Account({
         gid: account.gid,
         nickname: account.nickname,
@@ -168,23 +164,30 @@ class AccountWorld {
         createTime: UnixTime.now(),
       });
 
-      const passErrors = await validate(accountLogin);
-      if (passErrors.length) {
-        throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${passErrors.map(e => e.property).join(',')}]`);
-      }
       const accountErrors = await validate(newAccount);
       if (accountErrors.length) {
         throw new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, `ERR_PARAMETERS_INVALID, property=[${accountErrors.map(e => e.property).join(',')}]`);
       }
 
+      const salt = Random.randomString(20);
       const createdAccount = await Com.businessDB.manager.transaction(async (manager) => {
         const savedAcc = await manager.save(newAccount);
-        accountLogin.id = savedAcc.id;
-        await manager.save(accountLogin);
+        const accountLoginList: AccountLogin[] = [];
+        for (const login of loginList) {
+          const accountLogin = new AccountLogin({
+            id: savedAcc.id,
+            type: login.type,
+            username: login.username,
+            salt,
+            password: Hash.md5(login.password + salt),
+          });
+          accountLoginList.push(accountLogin);
+        }
+        await manager.save(accountLoginList);
         return savedAcc;
       });
 
-      Application.appLog.info('account-world', {event: 'create-account', account: {id: createdAccount.id, account, loginType: login.type, username: login.username}});
+      Application.appLog.info('account-world', {event: 'create-account', account: {id: createdAccount.id, account}});
 
       return createdAccount;
     });
