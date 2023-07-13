@@ -35,6 +35,26 @@ class ForwardRoute<T extends Service = Service> extends Route {
     return provider;
   }
 
+  private static async fetchIncomingToken(incoming: Notify | Request) {
+    const authorizationHeader = incoming.getHeader<string>('authorization');
+    let authorization: string | null = null;
+    if (authorizationHeader) {
+      const [scheme, headerToken] = authorizationHeader.split(' ');
+      if (scheme === 'sora-rpc-authorization' && headerToken) {
+        authorization = headerToken;
+      }
+    }
+    if (!authorization)
+      authorization = incoming.getHeader<string>(AuthRPCHeader.RPC_AUTHORIZATION) || null;
+
+    let token: AccountToken | null = null;
+    if (authorization) {
+      token = await AccountWorld.getAccountSession(authorization);
+    }
+
+    return token;
+  }
+
   static callback(route: ForwardRoute): ListenerCallback {
     return async (packet, session, connector): Promise<IRawResPacket | null> => {
       const startTime = Date.now();
@@ -51,13 +71,10 @@ class ForwardRoute<T extends Service = Service> extends Route {
           const service = request.service as ServiceName;
           const method = request.method;
           const shouldForward = service !== route.service.name;
-          const authorization = request.getHeader<string>(AuthRPCHeader.RPC_AUTHORIZATION);
-          let token: AccountToken | null = null;
-          if (authorization) {
-            token = await AccountWorld.getAccountSession(authorization);
-          }
+          const token = await this.fetchIncomingToken(request);
 
           const rpcId = request.getHeader(RPCHeader.RPC_ID_HEADER);
+          request.setHeader(AuthRPCHeader.RPC_AUTHORIZATION, token?.session);
           request.setHeader(AuthRPCHeader.RPC_AUTH_GID, token?.gid || GuestGroupId);
           request.setHeader(AuthRPCHeader.RPC_ACCOUNT_ID, token?.accountId);
           request.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
@@ -105,6 +122,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
                 [AuthRPCHeader.RPC_AUTH_GID]: token?.gid || GuestGroupId,
                 [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null,
+                [AuthRPCHeader.RPC_AUTHORIZATION]: token?.session,
               },
               timeout: NodeTime.second(60),
             }, true).catch((error: ExError) => {
@@ -123,14 +141,12 @@ class ForwardRoute<T extends Service = Service> extends Route {
         }
         case OPCode.NOTIFY: {
           const notify = new Notify(packet);
-          const authorization = notify.getHeader<string>(AuthRPCHeader.RPC_AUTHORIZATION);
-          let token: AccountToken | null = null;
-          if (authorization) {
-            token = await AccountWorld.getAccountSession(authorization);
-          }
+          const token = await this.fetchIncomingToken(notify);
+
           notify.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
           notify.setHeader(AuthRPCHeader.RPC_AUTH_GID, token?.gid || GuestGroupId);
           notify.setHeader(AuthRPCHeader.RPC_ACCOUNT_ID, token?.accountId);
+          notify.setHeader(AuthRPCHeader.RPC_AUTHORIZATION, token?.session);
           Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method});
 
           if (!packet.service)
@@ -158,6 +174,7 @@ class ForwardRoute<T extends Service = Service> extends Route {
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
                 [AuthRPCHeader.RPC_AUTH_GID]: token?.gid || GuestGroupId,
                 [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null,
+                [AuthRPCHeader.RPC_AUTHORIZATION]: token?.session,
               },
             });
             Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method, duration: Date.now() - startTime});

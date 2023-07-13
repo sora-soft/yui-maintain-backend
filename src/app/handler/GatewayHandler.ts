@@ -12,9 +12,9 @@ import {AuthPermission} from '../database/Auth.js';
 import {AccountRoute} from '../../lib/route/AccountRoute.js';
 
 export interface IReqRegister {
-  type: AccountLoginType;
   username: string;
   password: string;
+  email: string;
   nickname?: string;
   avatarUrl?: string;
 }
@@ -36,11 +36,15 @@ class GatewayHandler extends ForwardRoute {
         nickname: body.nickname,
         avatarUrl: body.avatarUrl,
       },
-      {
-        type: body.type,
+      [{
+        type: AccountLoginType.USERNAME,
         username: body.username,
         password: body.password,
-      }
+      }, {
+        type: AccountLoginType.EMAIL,
+        username: body.email,
+        password: body.password,
+      }]
     );
 
     return {

@@ -25,7 +25,7 @@ class AuthCommandWorker extends Worker {
   }
 
   protected async startup() {
-    await this.connectComponents([Com.businessDB]);
+    await this.connectComponents([Com.businessDB, Com.businessRedis]);
     await AccountWorld.startup();
   }
 
@@ -46,11 +46,11 @@ class AuthCommandWorker extends Worker {
         await AccountWorld.createAccount({
           nickname: username,
           gid: RootGroupId,
-        }, {
+        }, [{
           type: AccountLoginType.USERNAME,
           username,
           password: md5Password,
-        });
+        }]);
         break;
       }
       default: {
