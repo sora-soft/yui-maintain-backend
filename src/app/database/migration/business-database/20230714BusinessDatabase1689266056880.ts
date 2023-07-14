@@ -1,7 +1,8 @@
 import {MigrationInterface, QueryRunner} from '@sora-soft/database-component/typeorm';
 
-export class BusinessDatabase1689259176450 implements MigrationInterface {
+export class BusinessDatabase1689266056880 implements MigrationInterface {
   async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query('CREATE TABLE `config_file` (`name` varchar(64) NOT NULL, `context` text NOT NULL, `type` int NOT NULL, `createTime` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6), `updateTime` timestamp(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6), PRIMARY KEY (`name`)) ENGINE=InnoDB');
     await queryRunner.query('CREATE TABLE `auth_group` (`id` varchar(36) NOT NULL, `name` varchar(64) NOT NULL, `protected` tinyint NOT NULL DEFAULT 0, `createTime` int NOT NULL, PRIMARY KEY (`id`)) ENGINE=InnoDB AUTO_INCREMENT=1000');
     await queryRunner.query('CREATE TABLE `auth_permission` (`gid` varchar(255) NOT NULL, `name` varchar(64) NOT NULL, `permission` int NOT NULL DEFAULT \'2\', PRIMARY KEY (`gid`, `name`)) ENGINE=InnoDB');
     await queryRunner.query('CREATE TABLE `account_token` (`session` varchar(255) NOT NULL, `expireAt` int NOT NULL, `accountId` int NOT NULL, `gid` varchar(255) NOT NULL, INDEX `gid_idx` (`gid`), INDEX `expireAt_idx` (`expireAt`), INDEX `accountId_idx` (`accountId`), PRIMARY KEY (`session`)) ENGINE=InnoDB');
@@ -23,5 +24,6 @@ export class BusinessDatabase1689259176450 implements MigrationInterface {
     await queryRunner.query('DROP TABLE `account_token`');
     await queryRunner.query('DROP TABLE `auth_permission`');
     await queryRunner.query('DROP TABLE `auth_group`');
+    await queryRunner.query('DROP TABLE `config_file`');
   }
 }
