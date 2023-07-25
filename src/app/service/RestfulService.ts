@@ -31,7 +31,7 @@ class RestfulService extends Service {
         name: 'account',
         com: Com.businessDB,
         entity: Account,
-        select: ['id', 'nickname', 'gid', 'disabled'],
+        select: ['id', 'nickname', 'disabled'],
       },
       {
         name: 'auth-group',

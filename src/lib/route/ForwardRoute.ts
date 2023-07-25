@@ -1,5 +1,4 @@
 import {ErrorLevel, ExError, IRawResPacket, ListenerCallback, Logger, NodeTime, Notify, OPCode, Provider, Request, Response, Route, RPCError, RPCErrorCode, RPCHeader, RPCResponseError, Runtime, Service} from '@sora-soft/framework';
-import {GuestGroupId} from '../../app/account/AccountType.js';
 import {AccountWorld} from '../../app/account/AccountWorld.js';
 import {Application} from '../../app/Application.js';
 import {AccountToken} from '../../app/database/Account.js';
@@ -75,7 +74,6 @@ class ForwardRoute<T extends Service = Service> extends Route {
 
           const rpcId = request.getHeader(RPCHeader.RPC_ID_HEADER);
           request.setHeader(AuthRPCHeader.RPC_AUTHORIZATION, token?.session);
-          request.setHeader(AuthRPCHeader.RPC_AUTH_GID, token?.gid || GuestGroupId);
           request.setHeader(AuthRPCHeader.RPC_ACCOUNT_ID, token?.accountId);
           request.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
           Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: request.method, request: request.payload});
@@ -120,7 +118,6 @@ class ForwardRoute<T extends Service = Service> extends Route {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
-                [AuthRPCHeader.RPC_AUTH_GID]: token?.gid || GuestGroupId,
                 [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null,
                 [AuthRPCHeader.RPC_AUTHORIZATION]: token?.session,
               },
@@ -144,7 +141,6 @@ class ForwardRoute<T extends Service = Service> extends Route {
           const token = await this.fetchIncomingToken(notify);
 
           notify.setHeader(RPCHeader.RPC_SESSION_HEADER, session);
-          notify.setHeader(AuthRPCHeader.RPC_AUTH_GID, token?.gid || GuestGroupId);
           notify.setHeader(AuthRPCHeader.RPC_ACCOUNT_ID, token?.accountId);
           notify.setHeader(AuthRPCHeader.RPC_AUTHORIZATION, token?.session);
           Runtime.rpcLogger.debug('forward-route', {service: route.service.name, method: notify.method});
@@ -172,7 +168,6 @@ class ForwardRoute<T extends Service = Service> extends Route {
               headers: {
                 [ForwardRPCHeader.RPC_GATEWAY_ID]: route.service.id,
                 [ForwardRPCHeader.RPC_GATEWAY_SESSION]: session,
-                [AuthRPCHeader.RPC_AUTH_GID]: token?.gid || GuestGroupId,
                 [AuthRPCHeader.RPC_ACCOUNT_ID]: token ? token.accountId : null,
                 [AuthRPCHeader.RPC_AUTHORIZATION]: token?.session,
               },

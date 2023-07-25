@@ -1,12 +1,11 @@
-import {Column, Entity, Index, JoinColumn, ManyToOne, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component/typeorm';
+import {Column, Entity, Index, JoinTable, ManyToMany, PrimaryColumn, PrimaryGeneratedColumn} from '@sora-soft/database-component/typeorm';
 import {AccountId, AccountLoginType, AuthGroupId} from '../account/AccountType.js';
-import {AuthGroup} from './Auth.js';
 import {Timestamp} from './utility/Type.js';
+import {AuthGroup} from './Auth.js';
 
 @Entity()
 @Index('accountId_idx', ['accountId'])
 @Index('expireAt_idx', ['expireAt'])
-@Index('gid_idx', ['gid'])
 export class AccountToken {
   constructor(data?: Partial<AccountToken>) {
     if (!data)
@@ -25,9 +24,6 @@ export class AccountToken {
 
   @Column()
   accountId!: AccountId;
-
-  @Column()
-  gid!: AuthGroupId;
 }
 
 @Entity()
@@ -56,8 +52,6 @@ export class AccountLogin {
 
   @Column({length: 64})
   salt!: string;
-
-
 }
 
 @Entity({
@@ -82,16 +76,43 @@ export class Account {
   @Column({nullable: true})
   avatarUrl?: string;
 
-  @ManyToOne(() => AuthGroup)
-  @JoinColumn({name: 'gid'})
-  group?: AuthGroup;
-
-  @Column()
-  gid!: AuthGroupId;
+  @ManyToMany(() => AuthGroup)
+  @JoinTable({
+    name: 'account_auth_group',
+    joinColumn: {
+      name: 'accountId',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'groupId',
+      referencedColumnName: 'id',
+    },
+  })
+  groupList?: AuthGroup[];
 
   @Column()
   createTime!: Timestamp;
 
   @Column({default: false})
   disabled!: boolean;
+}
+
+@Entity()
+export class AccountAuthGroup {
+  constructor(data?: Partial<AccountAuthGroup>) {
+    if (!data)
+      return;
+
+    Object.entries(data).forEach(([key, value]) => {
+      this[key] = value;
+    });
+  }
+
+  @PrimaryColumn()
+  accountId!: AccountId;
+
+  @PrimaryColumn({
+    length: 36,
+  })
+  groupId!: AuthGroupId;
 }

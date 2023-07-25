@@ -1,5 +1,5 @@
 import {Route, Service} from '@sora-soft/framework';
-import {AuthGroupId, GuestGroupId} from '../../app/account/AccountType.js';
+import {AccountId} from '../../app/account/AccountType.js';
 import {AccountWorld} from '../../app/account/AccountWorld.js';
 import {UserErrorCode} from '../../app/ErrorCode.js';
 import {IRestfulReq} from '../../app/handler/RestfulHandler.js';
@@ -11,18 +11,15 @@ class AuthRoute<T extends Service = Service> extends Route {
     return (target: AuthRoute, method: string) => {
       Route.registerMiddleware<AuthRoute>(target, method, async (route, body, request) => {
         const checkAuthName = [route.service.name, authName || method].join('/');
+        const accountId = request.getHeader<AccountId>(AuthRPCHeader.RPC_ACCOUNT_ID);
 
-        const gid = request.getHeader<AuthGroupId>(AuthRPCHeader.RPC_AUTH_GID);
-        if (gid) {
-          if (gid === GuestGroupId) {
-            throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
-          }
-          const allowed = await AccountWorld.hasAuth(gid, checkAuthName);
-          if (!allowed) {
-            throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${checkAuthName}`);
-          }
-        } else {
+        if (!accountId)
           throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
+
+        const permission = await AccountWorld.fetchAccountPermission(accountId);
+        const allowed = permission.isAllow(checkAuthName);
+        if (!allowed) {
+          throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${checkAuthName}`);
         }
         return true;
       });
@@ -31,10 +28,10 @@ class AuthRoute<T extends Service = Service> extends Route {
 
   static logined(target: AuthRoute, method: string) {
     Route.registerMiddleware(target, method, async (route, body, request) => {
-      const gid = request.getHeader<AuthGroupId>(AuthRPCHeader.RPC_AUTH_GID);
-      if (!gid || gid === GuestGroupId) {
+      const accountId = request.getHeader<AccountId>(AuthRPCHeader.RPC_ACCOUNT_ID);
+
+      if (!accountId)
         throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
-      }
       return true;
     });
   }
@@ -45,17 +42,15 @@ class AuthRoute<T extends Service = Service> extends Route {
         const db = body.db;
         const checkAuthName = [route.service.name, authName || method, db].join('/');
 
-        const gid = request.getHeader<AuthGroupId>(AuthRPCHeader.RPC_AUTH_GID);
-        if (gid) {
-          if (gid === GuestGroupId) {
-            throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
-          }
-          const allowed = await AccountWorld.hasAuth(gid, checkAuthName);
-          if (!allowed) {
-            throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${checkAuthName}`);
-          }
-        } else {
+        const accountId = request.getHeader<AccountId>(AuthRPCHeader.RPC_ACCOUNT_ID);
+
+        if (!accountId)
           throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
+
+        const permission = await AccountWorld.fetchAccountPermission(accountId);
+        const allowed = permission.isAllow(checkAuthName);
+        if (!allowed) {
+          throw new UserError(UserErrorCode.ERR_AUTH_DENY, `ERR_AUTH_DENY, name=${checkAuthName}`);
         }
         return true;
       });

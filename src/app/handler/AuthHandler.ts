@@ -7,7 +7,7 @@ import {Random, Util} from '../../lib/Utility.js';
 import {AccountId, AccountLoginType, AuthGroupId, PermissionResult} from '../account/AccountType.js';
 import {AccountWorld} from '../account/AccountWorld.js';
 import {Application} from '../Application.js';
-import {Account, AccountLogin, AccountToken} from '../database/Account.js';
+import {Account, AccountAuthGroup, AccountLogin, AccountToken} from '../database/Account.js';
 import {AuthGroup, AuthPermission} from '../database/Auth.js';
 import {UserErrorCode} from '../ErrorCode.js';
 import {RedisKey} from '../Keys.js';
@@ -23,7 +23,7 @@ export interface IReqUpdatePermission {
 
 export interface IReqUpdateAccount {
   accountId: AccountId;
-  gid?: AuthGroupId;
+  groupList?: AuthGroupId[];
   nickname?: string;
 }
 
@@ -40,7 +40,7 @@ export interface IReqCreateAccount {
   username: string;
   nickname: string;
   email: string;
-  gid: AuthGroupId;
+  groupList: AuthGroupId[];
   password: string;
 }
 
@@ -57,15 +57,6 @@ export interface IReqForgetPassword {
   id: string;
   code: string;
   password: string;
-}
-
-export interface IReqDeleteAccessKey {
-  id: string;
-}
-
-export interface IReqFetchAccessKey {
-  offset: number;
-  limit: number;
 }
 
 @ValidateClass()
@@ -108,12 +99,19 @@ class AuthHandler extends AuthRoute {
 
   @Route.method
   @AuthRoute.auth()
-  @AccountRoute.account()
-  async updateAccount(@AssertType() body: IReqUpdateAccount, account: Account) {
+  async updateAccount(@AssertType() body: IReqUpdateAccount) {
     await Com.businessDB.manager.transaction(async (manager) => {
-      if (Util.isMeaningful(body.gid)) {
-        account.gid = body.gid;
-        await manager.update(AccountToken, {accountId: account.id}, {gid: body.gid});
+      const account = await Com.businessDB.manager.findOne(Account, {
+        where: {
+          id: body.accountId,
+        },
+      });
+      if (!account) {
+        throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, 'ERR_ACCOUNT_NOT_FOUND');
+      }
+
+      if (Util.isMeaningful(body.groupList)) {
+        await AccountWorld.updateAccountGroupList(body.accountId, body.groupList, manager);
       }
 
       if (Util.isMeaningful(body.nickname)) {
@@ -153,9 +151,9 @@ class AuthHandler extends AuthRoute {
   @Route.method
   @AuthRoute.auth()
   async deleteAuthGroup(@AssertType() body: IReqDeleteAuthGroup) {
-    const accounts = await Com.businessDB.manager.find(Account, {
+    const accounts = await Com.businessDB.manager.find(AccountAuthGroup, {
       where: {
-        gid: body.gid,
+        groupId: body.gid,
       },
     });
 
@@ -184,13 +182,14 @@ class AuthHandler extends AuthRoute {
   @Route.method
   @AuthRoute.auth()
   async createAccount(@AssertType() body: IReqCreateAccount) {
-    const group = await Com.businessDB.manager.findOneBy(AuthGroup, {id: body.gid});
+    for (const gid of body.groupList) {
+      const group = await Com.businessDB.manager.findOneBy(AuthGroup, {id: gid});
 
-    if (!group)
-      throw new UserError(UserErrorCode.ERR_AUTH_GROUP_NOT_FOUND, 'ERR_GROUP_NOT_FOUND');
+      if (!group)
+        throw new UserError(UserErrorCode.ERR_AUTH_GROUP_NOT_FOUND, 'ERR_GROUP_NOT_FOUND');
+    }
 
     const account = await AccountWorld.createAccount({
-      gid: body.gid,
       nickname: body.nickname,
     }, [{
       type: AccountLoginType.USERNAME,
@@ -200,7 +199,7 @@ class AuthHandler extends AuthRoute {
       type: AccountLoginType.EMAIL,
       username: body.email,
       password: body.password,
-    }]);
+    }], body.groupList);
 
     return {
       id: account.id,

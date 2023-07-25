@@ -8,8 +8,8 @@ import {AccountWorld} from '../account/AccountWorld.js';
 import {ForwardRoute} from '../../lib/route/ForwardRoute.js';
 import {AccountLoginType, UserGroupId} from '../account/AccountType.js';
 import {Hash} from '../../lib/Utility.js';
-import {AuthPermission} from '../database/Auth.js';
 import {AccountRoute} from '../../lib/route/AccountRoute.js';
+import {AccountPermission} from '../account/AccountPermission.js';
 
 export interface IReqRegister {
   username: string;
@@ -32,7 +32,6 @@ class GatewayHandler extends ForwardRoute {
   async register(@AssertType() body: IReqRegister) {
     const account = await AccountWorld.createAccount(
       {
-        gid: UserGroupId,
         nickname: body.nickname,
         avatarUrl: body.avatarUrl,
       },
@@ -44,7 +43,8 @@ class GatewayHandler extends ForwardRoute {
         type: AccountLoginType.EMAIL,
         username: body.email,
         password: body.password,
-      }]
+      }],
+      [UserGroupId]
     );
 
     return {
@@ -74,21 +74,15 @@ class GatewayHandler extends ForwardRoute {
   @Route.method
   @AccountRoute.account()
   @AccountRoute.token()
-  async info(body: void, account: Account, token: AccountToken) {
-    const permissions = await Com.businessDB.manager.find(AuthPermission, {
-      select: ['name', 'permission'],
-      where: {
-        gid: account.gid,
-      },
-    });
-
+  @AccountRoute.permission()
+  async info(body: void, account: Account, token: AccountToken, permission: AccountPermission) {
     return {
       account: {
         id: account.id,
         nickname: account.nickname,
         avatarUrl: account.avatarUrl,
       },
-      permissions,
+      permissions: permission.list,
       authorization: {
         token: token.session,
         expireAt: token.expireAt,
