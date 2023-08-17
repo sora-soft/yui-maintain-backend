@@ -2,7 +2,6 @@ import {Connector, Context, ExError, IServiceOptions, ITCPListenerOptions, Liste
 import {Pvd} from '../../lib/Provider.js';
 import {ServiceName} from './common/ServiceName.js';
 import {IWebSocketListenerOptions, WebSocketListener} from '@sora-soft/http-support';
-import {GatewayHandler} from '../handler/GatewayHandler.js';
 import {ForwardRoute} from '../../lib/route/ForwardRoute.js';
 import {Com} from '../../lib/Com.js';
 import {AccountWorld} from '../account/AccountWorld.js';
@@ -35,8 +34,8 @@ class HttpGatewayService extends Service {
     super(name, options);
     TypeGuard.assert<IHttpGatewayOptions>(options);
     this.gatewayOptions_ = options;
-    this.avaliableConnector_ = new Map();
-    this.connectorRegistedNotify_ = new WeakMap();
+    this.availableConnector_ = new Map();
+    this.connectorRegisteredNotify_ = new WeakMap();
   }
 
   protected async startup(ctx: Context) {
@@ -45,12 +44,12 @@ class HttpGatewayService extends Service {
 
     await ctx.await(AccountWorld.startup());
 
-    const route = new GatewayHandler(this, {
+    const route = new ForwardRoute(this, {
       [ServiceName.Restful]: Pvd.restful,
       [ServiceName.Auth]: Pvd.auth,
       [ServiceName.Monitor]: Pvd.monitor,
     });
-    const websocketListener = new WebSocketListener(this.gatewayOptions_.websocketListener, ForwardRoute.callback(route), this.gatewayOptions_.websocketListener.labels);
+    const websocketListener = this.websocketListener_ = new WebSocketListener(this.gatewayOptions_.websocketListener, ForwardRoute.callback(route), this.gatewayOptions_.websocketListener.labels);
 
     websocketListener.connectionSubject.subscribe(async (event) => {
       switch (event.type) {
@@ -58,11 +57,11 @@ class HttpGatewayService extends Service {
           await this.unregisterAllNotify(event.session).catch((err: ExError) => {
             Application.appLog.warn('gateway', {event: 'unregister-notify-error', error: Logger.errorMessage(err)});
           });
-          this.avaliableConnector_.delete(event.session);
+          this.availableConnector_.delete(event.session);
           break;
         }
         case ListenerConnectionEventType.NewConnection: {
-          this.avaliableConnector_.set(event.session, event.connector);
+          this.availableConnector_.set(event.session, event.connector);
           break;
         }
       }
@@ -70,6 +69,7 @@ class HttpGatewayService extends Service {
 
     const serverRoute = new GatewayServerHandler(this);
     const serverListener = new TCPListener(this.gatewayOptions_.serverListener, Route.callback(serverRoute), {role: 'server'});
+    this.registerTraefikListener();
 
     if (this.gatewayOptions_.traefik) {
       const nameInTraefik = `${this.gatewayOptions_.traefik.name || Application.appName.replace('@', '-')}:${this.name}`;
@@ -84,15 +84,24 @@ class HttpGatewayService extends Service {
     await AccountWorld.shutdown();
   }
 
+  private registerTraefikListener() {
+    if (this.gatewayOptions_.traefik) {
+      const nameInTraefik = `${this.gatewayOptions_.traefik.name || Application.appName.replace('@', '-')}:${this.name}`;
+      if (this.websocketListener_) {
+        TraefikWorld.registerTraefikListener(this.gatewayOptions_.traefik.prefix, 'http', `${nameInTraefik}:websocket`, this.websocketListener_);
+      }
+    }
+  }
+
   async registerNotify(session: string, name: string) {
-    const connector = this.avaliableConnector_.get(session);
+    const connector = this.availableConnector_.get(session);
     if (!connector) {
       throw new AppError(AppErrorCode.ERR_SESSION_NOT_AVALIABLE, 'ERR_SESSION_NOT_AVALIABLE');
     }
-    let pre = this.connectorRegistedNotify_.get(connector);
+    let pre = this.connectorRegisteredNotify_.get(connector);
     if (!pre) {
       pre = new Set();
-      this.connectorRegistedNotify_.set(connector, pre);
+      this.connectorRegisteredNotify_.set(connector, pre);
     }
 
     pre.add(name);
@@ -101,12 +110,12 @@ class HttpGatewayService extends Service {
   }
 
   async unregisterNotify(session: string, name: string) {
-    const connector = this.avaliableConnector_.get(session);
+    const connector = this.availableConnector_.get(session);
     if (!connector) {
       return;
     }
 
-    const registed = this.connectorRegistedNotify_.get(connector);
+    const registed = this.connectorRegisteredNotify_.get(connector);
     const deleted = registed?.delete(name);
 
     if (deleted) {
@@ -115,28 +124,29 @@ class HttpGatewayService extends Service {
   }
 
   async unregisterAllNotify(session: string) {
-    const connector = this.avaliableConnector_.get(session);
+    const connector = this.availableConnector_.get(session);
     if (!connector) {
       return;
     }
 
-    const registed = this.connectorRegistedNotify_.get(connector);
-    if (!registed)
+    const registered = this.connectorRegisteredNotify_.get(connector);
+    if (!registered)
       return;
 
-    for (const name of registed) {
+    for (const name of registered) {
       await Com.etcd.client.delete().key(EtcdKey.sessionNotify(session, name)).exec();
     }
-    this.connectorRegistedNotify_.delete(connector);
+    this.connectorRegisteredNotify_.delete(connector);
   }
 
-  get avaliableConnector() {
-    return this.avaliableConnector_;
+  get availableConnector() {
+    return this.availableConnector_;
   }
 
   private gatewayOptions_: IHttpGatewayOptions;
-  private avaliableConnector_: Map<string, Connector>;
-  private connectorRegistedNotify_: WeakMap<Connector, Set<string>>;
+  private availableConnector_: Map<string, Connector>;
+  private connectorRegisteredNotify_: WeakMap<Connector, Set<string>>;
+  private websocketListener_?: WebSocketListener;
 }
 
 export {HttpGatewayService};

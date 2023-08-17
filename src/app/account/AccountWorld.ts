@@ -1,6 +1,6 @@
 import {Hash, Random} from '../../lib/Utility.js';
 import {Com} from '../../lib/Com.js';
-import {Account, AccountLogin, AccountToken} from '../database/Account.js';
+import {Account, AccountAuthGroup, AccountLogin, AccountToken} from '../database/Account.js';
 import {AuthGroup, AuthPermission} from '../database/Auth.js';
 import {UserErrorCode} from '../ErrorCode.js';
 import {RedisKey} from '../Keys.js';
@@ -14,6 +14,7 @@ import {NodeTime, UnixTime} from '@sora-soft/framework';
 import {EntityManager, LessThan, Not, MoreThan, In} from '@sora-soft/database-component/typeorm';
 import {transaction} from '../database/utility/Decorators.js';
 import {v4 as uuid} from 'uuid';
+import {AccountPermission} from './AccountPermission.js';
 
 class AccountWorld {
   static async startup() {
@@ -63,7 +64,6 @@ class AccountWorld {
       session,
       accountId: account.id,
       expireAt: UnixTime.now() + expire,
-      gid: account.gid,
     }));
   }
 
@@ -95,6 +95,23 @@ class AccountWorld {
   @transaction(Com.businessDB)
   static async deleteAccountSessionByGid(gid: AuthGroupId, manager?: EntityManager) {
     return manager!.delete(AccountToken, {gid});
+  }
+
+  @transaction(Com.businessDB)
+  static async updateAccountGroupList(accountId: AccountId, groupIdList: AuthGroupId[], manager?: EntityManager) {
+    await manager!.delete(AccountAuthGroup, {
+      accountId,
+    });
+
+    const authGroupList: AccountAuthGroup[] =[];
+    for (const group of groupIdList) {
+      const accountAuthGroup = new AccountAuthGroup({
+        accountId,
+        groupId: group,
+      });
+      authGroupList.push(accountAuthGroup);
+    }
+    await manager!.save(authGroupList);
   }
 
   static async hasAuth(gid: AuthGroupId, name: string) {
@@ -141,7 +158,7 @@ class AccountWorld {
     return Com.businessRedis.getJSON<{accountId: AccountId; code: string}>(RedisKey.resetPasswordCode(id));
   }
 
-  static async createAccount(account: Pick<Account, 'avatarUrl' | 'gid' | 'nickname'>, loginList: Pick<AccountLogin, 'type' | 'username' | 'password'>[]) {
+  static async createAccount(account: Pick<Account, 'avatarUrl' | 'nickname'>, loginList: Pick<AccountLogin, 'type' | 'username' | 'password'>[], groupIdList: AuthGroupId[]) {
     return AccountLock.registerLock(loginList, async () => {
       const loginExisted = await Com.businessDB.manager.count(AccountLogin, {
         where: loginList.map(login => {
@@ -155,9 +172,7 @@ class AccountWorld {
       if (loginExisted)
         throw new UserError(UserErrorCode.ERR_DUPLICATE_REGISTER, 'ERR_DUPLICATE_REGISTER');
 
-
       const newAccount = new Account({
-        gid: account.gid,
         nickname: account.nickname,
         avatarUrl: account.avatarUrl,
         disabled: false,
@@ -184,6 +199,17 @@ class AccountWorld {
           accountLoginList.push(accountLogin);
         }
         await manager.save(accountLoginList);
+
+        const authGroupList: AccountAuthGroup[] =[];
+        for (const group of groupIdList) {
+          const accountAuthGroup = new AccountAuthGroup({
+            accountId: savedAcc.id,
+            groupId: group,
+          });
+          authGroupList.push(accountAuthGroup);
+        }
+        await manager.save(authGroupList);
+
         return savedAcc;
       });
 
@@ -207,6 +233,22 @@ class AccountWorld {
     return login;
   }
 
+  static async fetchAccountPermission(accountId: AccountId) {
+    const groupIdList = await Com.businessDB.manager.find<AccountAuthGroup>(AccountAuthGroup, {
+      where: {
+        accountId,
+      },
+    });
+
+    const permissionList = await Com.businessDB.manager.find<AuthPermission>(AuthPermission, {
+      where: {
+        gid: In(groupIdList.map(g => g.groupId)),
+      },
+    });
+
+    return new AccountPermission(permissionList);
+  }
+
   static async accountLogin(accountId: AccountId, ttl: number) {
     const account = await Com.businessDB.manager.findOne(Account, {
       where: {
@@ -223,14 +265,9 @@ class AccountWorld {
     const token = uuid();
     const newToken = await AccountWorld.setAccountSession(token, account, ttl);
 
-    const permissions = await Com.businessDB.manager.find(AuthPermission, {
-      select: ['name', 'permission'],
-      where: {
-        gid: account.gid,
-      },
-    });
+    const permissions = await this.fetchAccountPermission(account.id);
 
-    Application.appLog.info('gateway', {event: 'account-login', account: {id: account.id, gid: account.gid}});
+    Application.appLog.info('gateway', {event: 'account-login', account: {id: account.id}});
 
     return {
       account: {
@@ -238,7 +275,7 @@ class AccountWorld {
         nickname: account.nickname,
         avatarUrl: account.avatarUrl,
       },
-      permissions,
+      permissions: permissions.list,
       authorization: {
         token,
         expireAt: newToken.expireAt,

@@ -193,7 +193,17 @@ ${downSqls.reverse().join('\n')}
 
       case 'drop': {
         const [_, componentName] = commands;
-        const component: DatabaseComponent = Runtime.getComponent(componentName) ;
+        if (!componentName) {
+          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, 'ERR_PARAMETERS_INVALID'), 'Component name needed');
+          return false;
+        }
+
+        const component: DatabaseComponent = Runtime.getComponent(componentName);
+        if (!component) {
+          Application.appLog.fatal('worker.database-migrate', new UserError(UserErrorCode.ERR_PARAMETERS_INVALID, 'ERR_PARAMETERS_INVALID'), 'Component not found');
+          return false;
+        }
+
         const options = component.options as IDatabaseComponentOptions;
 
         const dataSource = new DataSource({

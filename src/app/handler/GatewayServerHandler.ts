@@ -37,7 +37,7 @@ class GatewayServerHandler extends ServiceRoute<HttpGatewayService> {
   @Route.notify
   async notifyToClient(@AssertType() body: IReqNotifyToClient) {
     for (const session of body.sessions) {
-      const connector = this.service.avaliableConnector.get(session);
+      const connector = this.service.availableConnector.get(session);
       if (!connector) {
         continue;
       }

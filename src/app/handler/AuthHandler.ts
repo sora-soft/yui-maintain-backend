@@ -1,17 +1,18 @@
-import {Route} from '@sora-soft/framework';
+import {Route, UnixTime} from '@sora-soft/framework';
 import {AssertType, ValidateClass} from '@sora-soft/type-guard';
 import {Com} from '../../lib/Com.js';
 import {AccountRoute} from '../../lib/route/AccountRoute.js';
 import {AuthRoute} from '../../lib/route/AuthRoute.js';
-import {Random, Util} from '../../lib/Utility.js';
-import {AccountId, AccountLoginType, AuthGroupId, PermissionResult} from '../account/AccountType.js';
+import {Hash, Random, Util} from '../../lib/Utility.js';
+import {AccountId, AccountLoginType, AuthGroupId, PermissionResult, UserGroupId} from '../account/AccountType.js';
 import {AccountWorld} from '../account/AccountWorld.js';
 import {Application} from '../Application.js';
-import {Account, AccountLogin, AccountToken} from '../database/Account.js';
+import {Account, AccountAuthGroup, AccountLogin, AccountToken} from '../database/Account.js';
 import {AuthGroup, AuthPermission} from '../database/Auth.js';
 import {UserErrorCode} from '../ErrorCode.js';
 import {RedisKey} from '../Keys.js';
 import {UserError} from '../UserError.js';
+import {AccountPermission} from '../account/AccountPermission.js';
 
 export interface IReqUpdatePermission {
   gid: AuthGroupId;
@@ -23,7 +24,7 @@ export interface IReqUpdatePermission {
 
 export interface IReqUpdateAccount {
   accountId: AccountId;
-  gid?: AuthGroupId;
+  groupList?: AuthGroupId[];
   nickname?: string;
 }
 
@@ -40,7 +41,7 @@ export interface IReqCreateAccount {
   username: string;
   nickname: string;
   email: string;
-  gid: AuthGroupId;
+  groupList: AuthGroupId[];
   password: string;
 }
 
@@ -59,9 +60,94 @@ export interface IReqForgetPassword {
   password: string;
 }
 
+export interface IReqRegister {
+  username: string;
+  password: string;
+  email: string;
+  nickname?: string;
+  avatarUrl?: string;
+}
+
+export interface IReqLogin {
+  username: string;
+  password: string;
+  type: AccountLoginType;
+  remember: boolean;
+}
+
 
 @ValidateClass()
 class AuthHandler extends AuthRoute {
+  @Route.method
+  async register(@AssertType() body: IReqRegister) {
+    const account = await AccountWorld.createAccount(
+      {
+        nickname: body.nickname,
+        avatarUrl: body.avatarUrl,
+      },
+      [{
+        type: AccountLoginType.USERNAME,
+        username: body.username,
+        password: body.password,
+      }, {
+        type: AccountLoginType.EMAIL,
+        username: body.email,
+        password: body.password,
+      }],
+      [UserGroupId]
+    );
+
+    return {
+      id: account.id,
+    };
+  }
+
+  @Route.method
+  async login(@AssertType() body: IReqLogin) {
+    const loginInfo = await Com.businessDB.manager.findOne(AccountLogin, {
+      where: {
+        type: body.type,
+        username: body.username,
+      },
+    });
+    if (!loginInfo)
+      throw new UserError(UserErrorCode.ERR_USERNAME_NOT_FOUND, 'ERR_USERNAME_NOT_FOUND');
+
+    const password = Hash.md5(body.password + loginInfo.salt);
+
+    if (loginInfo.password !== password)
+      throw new UserError(UserErrorCode.ERR_WRONG_PASSWORD, 'ERR_WRONG_PASSWORD');
+
+    return AccountWorld.accountLogin(loginInfo.id, body.remember ? UnixTime.day(30) : UnixTime.hour(8));
+  }
+
+  @Route.method
+  @AccountRoute.account()
+  @AccountRoute.token()
+  @AccountRoute.permission()
+  async info(body: void, account: Account, token: AccountToken, permission: AccountPermission) {
+    return {
+      account: {
+        id: account.id,
+        nickname: account.nickname,
+        avatarUrl: account.avatarUrl,
+      },
+      permissions: permission.list,
+      authorization: {
+        token: token.session,
+        expireAt: token.expireAt,
+      },
+    };
+  }
+
+  @Route.method
+  @AccountRoute.token()
+  async logout(body: void, token: AccountToken) {
+    await AccountWorld.deleteAccountSession(token.session);
+
+    return {};
+  }
+
   @Route.method
   @AuthRoute.logined
   async fetchAccountList() {
@@ -100,12 +186,19 @@ class AuthHandler extends AuthRoute {
 
   @Route.method
   @AuthRoute.auth()
-  @AccountRoute.account()
-  async updateAccount(@AssertType() body: IReqUpdateAccount, account: Account) {
+  async updateAccount(@AssertType() body: IReqUpdateAccount) {
     await Com.businessDB.manager.transaction(async (manager) => {
-      if (Util.isMeaningful(body.gid)) {
-        account.gid = body.gid;
-        await manager.update(AccountToken, {accountId: account.id}, {gid: body.gid});
+      const account = await Com.businessDB.manager.findOne(Account, {
+        where: {
+          id: body.accountId,
+        },
+      });
+      if (!account) {
+        throw new UserError(UserErrorCode.ERR_ACCOUNT_NOT_FOUND, 'ERR_ACCOUNT_NOT_FOUND');
+      }
+
+      if (Util.isMeaningful(body.groupList)) {
+        await AccountWorld.updateAccountGroupList(body.accountId, body.groupList, manager);
       }
 
       if (Util.isMeaningful(body.nickname)) {
@@ -145,9 +238,9 @@ class AuthHandler extends AuthRoute {
   @Route.method
   @AuthRoute.auth()
   async deleteAuthGroup(@AssertType() body: IReqDeleteAuthGroup) {
-    const accounts = await Com.businessDB.manager.find(Account, {
+    const accounts = await Com.businessDB.manager.find(AccountAuthGroup, {
       where: {
-        gid: body.gid,
+        groupId: body.gid,
       },
     });
 
@@ -176,13 +269,14 @@ class AuthHandler extends AuthRoute {
   @Route.method
   @AuthRoute.auth()
   async createAccount(@AssertType() body: IReqCreateAccount) {
-    const group = await Com.businessDB.manager.findOneBy(AuthGroup, {id: body.gid});
+    for (const gid of body.groupList) {
+      const group = await Com.businessDB.manager.findOneBy(AuthGroup, {id: gid});
 
-    if (!group)
-      throw new UserError(UserErrorCode.ERR_AUTH_GROUP_NOT_FOUND, 'ERR_GROUP_NOT_FOUND');
+      if (!group)
+        throw new UserError(UserErrorCode.ERR_AUTH_GROUP_NOT_FOUND, 'ERR_GROUP_NOT_FOUND');
+    }
 
     const account = await AccountWorld.createAccount({
-      gid: body.gid,
       nickname: body.nickname,
     }, [{
       type: AccountLoginType.USERNAME,
@@ -192,7 +286,7 @@ class AuthHandler extends AuthRoute {
       type: AccountLoginType.EMAIL,
       username: body.email,
       password: body.password,
-    }]);
+    }], body.groupList);
 
     return {
       id: account.id,

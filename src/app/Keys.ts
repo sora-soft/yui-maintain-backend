@@ -20,10 +20,6 @@ export class RedisKey {
     return `lock:account-register:${type}:${username}`;
   }
 
-  static tarotAnswerLock(id: string) {
-    return `lock:tarot-answer:${id}`;
-  }
-
   static accountSession(session: string) {
     return `account-session:${session}`;
   }

@@ -5,9 +5,11 @@ import {UserErrorCode} from '../../app/ErrorCode.js';
 import {UserError} from '../../app/UserError.js';
 import {Com} from '../Com.js';
 import {AuthRPCHeader} from '../Const.js';
+import {AccountPermission} from '../../app/account/AccountPermission.js';
+import {AccountWorld} from '../../app/account/AccountWorld.js';
 
 interface IAccountOptions {
-  relations?: FindOptionsRelations<Pick<Account, 'group'>>;
+  relations?: FindOptionsRelations<Pick<Account, 'groupList'>>;
 }
 
 class AccountRoute extends Route {
@@ -50,6 +52,18 @@ class AccountRoute extends Route {
           throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
 
         return token;
+      });
+    };
+  }
+
+  static permission() {
+    return (target: AccountRoute, method: string) => {
+      Route.registerProvider(target, method, AccountPermission, async (route, body, request) => {
+        const accountId = request.getHeader<number>(AuthRPCHeader.RPC_ACCOUNT_ID);
+        if (!accountId)
+          throw new UserError(UserErrorCode.ERR_NOT_LOGIN, 'ERR_NOT_LOGIN');
+
+        return AccountWorld.fetchAccountPermission(accountId);
       });
     };
   }
